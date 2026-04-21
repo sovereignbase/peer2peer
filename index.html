@@ -232,6 +232,17 @@
         gap: 1rem;
       }
 
+      #switcher {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      #switcher button[aria-pressed='false'] {
+        background: transparent;
+        color: #fff;
+      }
+
       .control-card {
         display: grid;
         gap: 0.75rem;
@@ -251,6 +262,28 @@
         line-height: 1.5;
       }
 
+      .field-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+
+      .icon-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        width: auto;
+        background: transparent;
+        color: #fff;
+      }
+
+      .icon-button svg {
+        width: 1rem;
+        height: 1rem;
+        fill: currentColor;
+      }
+
       label {
         display: grid;
         gap: 0.55rem;
@@ -264,7 +297,8 @@
       }
 
       input[type='text'],
-      input[type='number'] {
+      input[type='number'],
+      textarea {
         width: 100%;
         padding: 0.9rem 1rem;
         border: 1px solid rgba(255, 255, 255, 0.16);
@@ -273,12 +307,19 @@
         font: inherit;
       }
 
+      textarea {
+        min-height: 8rem;
+        border-radius: 1rem;
+        resize: vertical;
+      }
+
       input::placeholder {
         color: rgba(255, 255, 255, 0.38);
       }
 
       input[type='text']:focus,
-      input[type='number']:focus {
+      input[type='number']:focus,
+      textarea:focus {
         outline: none;
         border-color: rgba(255, 255, 255, 0.3);
       }
@@ -414,30 +455,16 @@
           peer to peer messenger demo.
         </p>
 
+        <div id="switcher">
+          <button id="qrMode" type="button" aria-pressed="true">QR Code</button>
+          <button id="copyPasteMode" type="button" aria-pressed="false">
+            Copy Paste
+          </button>
+        </div>
+
         <input id="name" type="text" placeholder="Your name" />
 
-        <div class="controls">
-          <div class="control-card">
-            <h5>Step 1 (Device A)</h5>
-            <p>Displays an RTCPeerConnection offer as a QR code.</p>
-            <button id="makeOffer">Make an offer</button>
-          </div>
-
-          <div class="control-card">
-            <h5>Step 2 (Device B)</h5>
-            <p>
-              Starts a QR scanner, processes the RTCPeerConnection offer, and
-              displays an answer as a QR code.
-            </p>
-            <button id="acceptOffer">Accept the offer</button>
-          </div>
-
-          <div class="control-card">
-            <h5>Step 3 (Device A)</h5>
-            <p>Scans the QR code and completes the RTCPeerConnection setup.</p>
-            <button id="finishOffer">Finish the offer</button>
-          </div>
-        </div>
+        <div id="controls" class="controls"></div>
         <div class="chat">
           <div id="messages" aria-live="polite"></div>
           <div class="composer">

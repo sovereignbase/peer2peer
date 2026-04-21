@@ -1618,7 +1618,7 @@ var P2PConnection = class _P2PConnection {
   async channel() {
     return await this.#channelPromise;
   }
-  send(data) {
+  sendMessage(data) {
     if (!this.#channel) throw new TypeError("CALL_READY_FIRST");
     this.#channel.send(encode(data));
   }

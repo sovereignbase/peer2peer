@@ -8,7 +8,11 @@ let peer = undefined
 const messagesStore = new KVStore('messages')
 const messagesElement = document.getElementById('messages')
 const nameInput = document.getElementById('name')
-let profile = (await messagesStore.get('profile')) ?? { name: '' }
+const controlsElement = document.getElementById('controls')
+const qrModeButton = document.getElementById('qrMode')
+const copyPasteModeButton = document.getElementById('copyPasteMode')
+let profile = (await messagesStore.get('profile')) ?? { name: '', demoMode: 'qr' }
+let demoMode = profile.demoMode ?? 'qr'
 
 nameInput.value = profile.name ?? ''
 
@@ -37,6 +41,113 @@ function closeQrDisplay() {
   })
 }
 
+function setDemoMode(nextMode) {
+  demoMode = nextMode
+  profile = { ...profile, demoMode: nextMode }
+  messagesStore.put('profile', profile)
+  qrModeButton.setAttribute('aria-pressed', String(nextMode === 'qr'))
+  copyPasteModeButton.setAttribute('aria-pressed', String(nextMode === 'copy'))
+  renderControls()
+}
+
+function renderControls() {
+  if (demoMode === 'qr') {
+    controlsElement.innerHTML = `
+      <div class="control-card">
+        <h5>Step 1 (Device A)</h5>
+        <p>Displays an RTCPeerConnection offer as a QR code.</p>
+        <button id="makeOffer">Make an offer</button>
+      </div>
+
+      <div class="control-card">
+        <h5>Step 2 (Device B)</h5>
+        <p>Starts a QR scanner, processes the RTCPeerConnection offer, and displays an answer as a QR code.</p>
+        <button id="acceptOffer">Accept the offer</button>
+      </div>
+
+      <div class="control-card">
+        <h5>Step 3 (Device A)</h5>
+        <p>Scans the QR code and completes the RTCPeerConnection setup.</p>
+        <button id="finishOffer">Finish the offer</button>
+      </div>
+    `
+  } else {
+    controlsElement.innerHTML = `
+      <div class="control-card">
+        <h5>Step 1 (Device A)</h5>
+        <p>Create an RTCPeerConnection offer and copy it to any channel you want.</p>
+        <button id="makeOffer">Make an offer</button>
+        <textarea id="offerOutput" placeholder="Offer appears here." readonly></textarea>
+        <div class="field-actions">
+          <button id="copyOffer" class="icon-button" type="button" aria-label="Copy offer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z" />
+            </svg>
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <div class="control-card">
+        <h5>Step 2 (Device B)</h5>
+        <p>Paste the offer, process it, and copy the answer back to device A.</p>
+        <textarea id="offerInput" placeholder="Paste offer here."></textarea>
+        <div class="field-actions">
+          <button id="pasteOffer" class="icon-button" type="button" aria-label="Paste offer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 4h-3.18C15.4 2.84 14.3 2 13 2h-2c-1.3 0-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V6h2v3h10V6h2v5h2V6a2 2 0 0 0-2-2Zm-8-1h2a1 1 0 0 1 1 1h-4a1 1 0 0 1 1-1Zm6 4H7V6h10v1Zm3 6v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z" />
+            </svg>
+            Paste
+          </button>
+        </div>
+        <button id="acceptOffer">Accept the offer</button>
+        <textarea id="answerOutput" placeholder="Answer appears here." readonly></textarea>
+        <div class="field-actions">
+          <button id="copyAnswer" class="icon-button" type="button" aria-label="Copy answer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z" />
+            </svg>
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <div class="control-card">
+        <h5>Step 3 (Device A)</h5>
+        <p>Paste the answer and complete the RTCPeerConnection setup.</p>
+        <textarea id="answerInput" placeholder="Paste answer here."></textarea>
+        <div class="field-actions">
+          <button id="pasteAnswer" class="icon-button" type="button" aria-label="Paste answer">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 4h-3.18C15.4 2.84 14.3 2 13 2h-2c-1.3 0-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V6h2v3h10V6h2v5h2V6a2 2 0 0 0-2-2Zm-8-1h2a1 1 0 0 1 1 1h-4a1 1 0 0 1 1-1Zm6 4H7V6h10v1Zm3 6v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z" />
+            </svg>
+            Paste
+          </button>
+        </div>
+        <button id="finishOffer">Finish the offer</button>
+      </div>
+    `
+  }
+
+  bindControlEvents()
+}
+
+function readHandshakeValue(id) {
+  return JSON.parse(document.getElementById(id).value)
+}
+
+async function copyField(id) {
+  const field = document.getElementById(id)
+  if (!field?.value) return
+  await navigator.clipboard.writeText(field.value)
+}
+
+async function pasteField(id) {
+  const field = document.getElementById(id)
+  if (!field) return
+  field.value = await navigator.clipboard.readText()
+}
+
 function setupPeer(nextPeer) {
   peer = nextPeer
   peer.onmessage((data) => {
@@ -60,30 +171,64 @@ function setupPeer(nextPeer) {
   })
 }
 
-document.getElementById('makeOffer').addEventListener('click', async () => {
-  const offer = await P2PConnection.makeOffer()
-  QR.display(JSON.stringify(offer))
-})
+function bindControlEvents() {
+  document.getElementById('makeOffer').onclick = async () => {
+    const offer = await P2PConnection.makeOffer()
+    const value = JSON.stringify(offer)
 
-document.getElementById('acceptOffer').addEventListener('click', async () => {
-  const offer = JSON.parse(await QR.scan())
-  const { offeror, offeree } = await P2PConnection.acceptOffer(offer)
-  setupPeer(new P2PConnection(offeree))
-  QR.display(JSON.stringify(offeror))
-  await peer.ready()
-  peer.sendMessage({ type: 'snapshot', payload: messages.toJSON() })
-})
+    if (demoMode === 'copy') {
+      document.getElementById('offerOutput').value = value
+      return
+    }
 
-document.getElementById('finishOffer').addEventListener('click', async () => {
-  const offeror = JSON.parse(await QR.scan())
+    QR.display(value)
+  }
 
-  setupPeer(new P2PConnection(offeror))
-  await peer.ready()
+  document.getElementById('acceptOffer').onclick = async () => {
+    const offer =
+      demoMode === 'copy'
+        ? readHandshakeValue('offerInput')
+        : JSON.parse(await QR.scan())
+    const { offeror, offeree } = await P2PConnection.acceptOffer(offer)
+    setupPeer(new P2PConnection(offeree))
+    const value = JSON.stringify(offeror)
 
-  closeQrDisplay()
-  peer.sendMessage('connected')
-  peer.sendMessage({ type: 'snapshot', payload: messages.toJSON() })
-})
+    if (demoMode === 'copy') document.getElementById('answerOutput').value = value
+    else QR.display(value)
+
+    await peer.ready()
+    peer.sendMessage({ type: 'snapshot', payload: messages.toJSON() })
+  }
+
+  document.getElementById('finishOffer').onclick = async () => {
+    const offeror =
+      demoMode === 'copy'
+        ? readHandshakeValue('answerInput')
+        : JSON.parse(await QR.scan())
+
+    setupPeer(new P2PConnection(offeror))
+    await peer.ready()
+
+    closeQrDisplay()
+    peer.sendMessage('connected')
+    peer.sendMessage({ type: 'snapshot', payload: messages.toJSON() })
+  }
+
+  if (demoMode === 'copy') {
+    document.getElementById('copyOffer').onclick = async () => {
+      await copyField('offerOutput')
+    }
+    document.getElementById('pasteOffer').onclick = async () => {
+      await pasteField('offerInput')
+    }
+    document.getElementById('copyAnswer').onclick = async () => {
+      await copyField('answerOutput')
+    }
+    document.getElementById('pasteAnswer').onclick = async () => {
+      await pasteField('answerInput')
+    }
+  }
+}
 
 let snapshot = undefined
 
@@ -121,6 +266,16 @@ messages.addEventListener('snapshot', ({ detail }) => {
 })
 
 nameInput.addEventListener('change', () => {
-  profile = { name: nameInput.value.trim() }
+  profile = { ...profile, name: nameInput.value.trim() }
   messagesStore.put('profile', profile)
 })
+
+qrModeButton.addEventListener('click', () => {
+  setDemoMode('qr')
+})
+
+copyPasteModeButton.addEventListener('click', () => {
+  setDemoMode('copy')
+})
+
+setDemoMode(demoMode)
