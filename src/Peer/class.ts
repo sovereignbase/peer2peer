@@ -145,22 +145,6 @@ function waitForChannelOpen(channel: RTCDataChannel): Promise<void> {
   })
 }
 
-export function serializeOffer(offer: Offer): Uint8Array {
-  return encode(offer)
-}
-
-export function deserializeOffer(bytes: Uint8Array): Offer {
-  return decode(bytes) as Offer
-}
-
-export function serializePeerInit(init: PeerInit): Uint8Array {
-  return encode(init)
-}
-
-export function deserializePeerInit(bytes: Uint8Array): PeerInit {
-  return decode(bytes) as PeerInit
-}
-
 export class P2PConnection {
   static #pendingOfferorSide = new Map<
     Offer['offerId'],
@@ -283,7 +267,7 @@ export class P2PConnection {
     return await this.#channelPromise
   }
 
-  send(data: unknown): void {
+  sendMessage(data: unknown): void {
     if (!this.#channel) throw new TypeError('CALL_READY_FIRST')
     this.#channel.send(encode(data))
   }
