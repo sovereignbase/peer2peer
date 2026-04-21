@@ -11,7 +11,10 @@ const nameInput = document.getElementById('name')
 const controlsElement = document.getElementById('controls')
 const qrModeButton = document.getElementById('qrMode')
 const copyPasteModeButton = document.getElementById('copyPasteMode')
-let profile = (await messagesStore.get('profile')) ?? { name: '', demoMode: 'qr' }
+let profile = (await messagesStore.get('profile')) ?? {
+  name: '',
+  demoMode: 'qr',
+}
 let demoMode = profile.demoMode ?? 'qr'
 
 nameInput.value = profile.name ?? ''
@@ -135,25 +138,29 @@ function renderControls() {
 }
 
 function readHandshakeValue(id) {
-  return JSON.parse(document.getElementById(id).value)
+  return document.getElementById(id).value
 }
 
 async function readSignal(kind) {
-  if (demoMode === 'qr') return JSON.parse(await QR.scan())
+  const payload =
+    demoMode === 'qr'
+      ? await QR.scan()
+      : readHandshakeValue(kind === 'offer' ? 'offerInput' : 'answerInput')
 
-  return readHandshakeValue(kind === 'offer' ? 'offerInput' : 'answerInput')
+  return JSON.parse(await QR.restoreEncoding(payload))
 }
 
-function writeSignal(kind, value) {
-  const serialized = JSON.stringify(value)
+async function writeSignal(kind, value) {
+  const optimized = await QR.optimizeEncoding(JSON.stringify(value))
 
   if (demoMode === 'qr') {
-    QR.display(serialized)
+    QR.display(optimized)
     return
   }
 
-  document.getElementById(kind === 'offer' ? 'offerOutput' : 'answerOutput').value =
-    serialized
+  document.getElementById(
+    kind === 'offer' ? 'offerOutput' : 'answerOutput'
+  ).value = optimized
 }
 
 async function copyField(id) {
@@ -194,14 +201,14 @@ function setupPeer(nextPeer) {
 function bindControlEvents() {
   document.getElementById('makeOffer').onclick = async () => {
     const offer = await P2PConnection.makeOffer()
-    writeSignal('offer', offer)
+    await writeSignal('offer', offer)
   }
 
   document.getElementById('acceptOffer').onclick = async () => {
     const offer = await readSignal('offer')
     const { offeror, offeree } = await P2PConnection.acceptOffer(offer)
     setupPeer(new P2PConnection(offeree))
-    writeSignal('answer', offeror)
+    await writeSignal('answer', offeror)
 
     await peer.ready()
     peer.sendMessage({ type: 'snapshot', payload: messages.toJSON() })

@@ -117,6 +117,263 @@ break;case "inversionMode":switch(c){case "original":Y="dontInvert";break;case "
   }
 });
 
+// node_modules/@sovereignbase/bytecodec/dist/index.js
+var BytecodecError = class extends Error {
+  /**
+   * Machine-readable error code for programmatic handling.
+   */
+  code;
+  /**
+   * Creates a new bytecodec error with a package-prefixed message.
+   *
+   * @param code Stable error code describing the failure category.
+   * @param message Optional human-readable detail appended to the package prefix.
+   */
+  constructor(code, message) {
+    const detail = message ?? code;
+    super(`{@sovereignbase/bytecodec} ${detail}`);
+    this.code = code;
+    this.name = "BytecodecError";
+  }
+};
+var textEncoder = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
+var textDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : null;
+function isNodeRuntime() {
+  return typeof process !== "undefined" && !!process.versions?.node;
+}
+async function importNodeBuiltin(specifier) {
+  const importer = new Function("specifier", "return import(specifier)");
+  return importer(specifier);
+}
+var HEX_PAIRS = Array.from(
+  { length: 256 },
+  (_, value) => value.toString(16).padStart(2, "0")
+);
+var HEX_VALUES = (() => {
+  const table = new Int16Array(128).fill(-1);
+  for (let index = 0; index < 10; index++)
+    table["0".charCodeAt(0) + index] = index;
+  for (let index = 0; index < 6; index++) {
+    table["A".charCodeAt(0) + index] = index + 10;
+    table["a".charCodeAt(0) + index] = index + 10;
+  }
+  return table;
+})();
+var BASE45_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+var BASE45_VALUES = (() => {
+  const table = new Int16Array(128).fill(-1);
+  for (let i = 0; i < BASE45_CHARS.length; i++) {
+    table[BASE45_CHARS.charCodeAt(i)] = i;
+  }
+  return table;
+})();
+var Z85_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
+var Z85_VALUES = (() => {
+  const table = new Int16Array(128).fill(-1);
+  for (let i = 0; i < Z85_CHARS.length; i++) {
+    table[Z85_CHARS.charCodeAt(i)] = i;
+  }
+  return table;
+})();
+var BASE58BTC_CHARS = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+var BASE58BTC_VALUES = (() => {
+  const table = new Int16Array(128).fill(-1);
+  for (let i = 0; i < BASE58BTC_CHARS.length; i++) {
+    table[BASE58BTC_CHARS.charCodeAt(i)] = i;
+  }
+  return table;
+})();
+function fromBase45String(base45String) {
+  if (typeof base45String !== "string")
+    throw new BytecodecError(
+      "BASE45_INPUT_EXPECTED",
+      "fromBase45String expects a string input"
+    );
+  if (base45String.length % 3 === 1)
+    throw new BytecodecError(
+      "BASE45_INVALID_LENGTH",
+      "Base45 string length must not leave a trailing single character"
+    );
+  const bytes = new Uint8Array(
+    Math.floor(base45String.length / 3) * 2 + (base45String.length % 3 === 2 ? 1 : 0)
+  );
+  let byteOffset = 0;
+  for (let stringOffset = 0; stringOffset < base45String.length; ) {
+    const remaining = base45String.length - stringOffset;
+    const digit0 = toBase45Digit(base45String, stringOffset);
+    const digit1 = toBase45Digit(base45String, stringOffset + 1);
+    if (remaining === 2) {
+      const value2 = digit0 + digit1 * 45;
+      if (value2 > 255)
+        throw new BytecodecError(
+          "BASE45_INVALID_CHUNK",
+          `Invalid base45 chunk at index ${stringOffset}`
+        );
+      bytes[byteOffset++] = value2;
+      stringOffset += 2;
+      continue;
+    }
+    const digit2 = toBase45Digit(base45String, stringOffset + 2);
+    const value = digit0 + digit1 * 45 + digit2 * 2025;
+    if (value > 65535)
+      throw new BytecodecError(
+        "BASE45_INVALID_CHUNK",
+        `Invalid base45 chunk at index ${stringOffset}`
+      );
+    bytes[byteOffset++] = value >>> 8;
+    bytes[byteOffset++] = value & 255;
+    stringOffset += 3;
+  }
+  return bytes;
+}
+function toBase45Digit(base45String, stringOffset) {
+  const code = base45String.charCodeAt(stringOffset);
+  const digit = code < 128 ? BASE45_VALUES[code] : -1;
+  if (digit === -1)
+    throw new BytecodecError(
+      "BASE45_INVALID_CHARACTER",
+      `Invalid base45 character at index ${stringOffset}`
+    );
+  return digit;
+}
+function toBase45String(bytes) {
+  const view = toUint8Array(bytes);
+  let base45String = "";
+  for (let offset = 0; offset + 1 < view.length; offset += 2) {
+    let value = view[offset] * 256 + view[offset + 1];
+    base45String += BASE45_CHARS[value % 45];
+    value = Math.floor(value / 45);
+    base45String += BASE45_CHARS[value % 45];
+    base45String += BASE45_CHARS[Math.floor(value / 45)];
+  }
+  if (view.length % 2 === 1) {
+    const value = view[view.length - 1];
+    base45String += BASE45_CHARS[value % 45];
+    base45String += BASE45_CHARS[Math.floor(value / 45)];
+  }
+  return base45String;
+}
+function fromString(text) {
+  if (typeof text !== "string")
+    throw new BytecodecError(
+      "STRING_INPUT_EXPECTED",
+      "fromString expects a string input"
+    );
+  if (textEncoder) return textEncoder.encode(text);
+  if (typeof Buffer !== "undefined" && typeof Buffer.from === "function")
+    return new Uint8Array(Buffer.from(text, "utf8"));
+  throw new BytecodecError(
+    "UTF8_ENCODER_UNAVAILABLE",
+    "No UTF-8 encoder available in this environment."
+  );
+}
+function toString(bytes) {
+  const view = toUint8Array(bytes);
+  if (textDecoder) return textDecoder.decode(view);
+  if (typeof Buffer !== "undefined" && typeof Buffer.from === "function")
+    return Buffer.from(view).toString("utf8");
+  throw new BytecodecError(
+    "UTF8_DECODER_UNAVAILABLE",
+    "No UTF-8 decoder available in this environment."
+  );
+}
+function toUint8Array(input) {
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input.slice(0));
+  }
+  if (typeof SharedArrayBuffer !== "undefined" && input instanceof SharedArrayBuffer) {
+    return new Uint8Array(input).slice();
+  }
+  if (ArrayBuffer.isView(input)) {
+    const view = new Uint8Array(
+      input.buffer,
+      input.byteOffset,
+      input.byteLength
+    );
+    return new Uint8Array(view);
+  }
+  if (Array.isArray(input)) {
+    return new Uint8Array(input);
+  }
+  throw new BytecodecError(
+    "BYTE_SOURCE_EXPECTED",
+    "Expected a Uint8Array, ArrayBuffer, SharedArrayBuffer, ArrayBufferView, or number[]"
+  );
+}
+async function toCompressed(bytes) {
+  const view = toUint8Array(bytes);
+  if (isNodeRuntime()) {
+    const { gzip } = await importNodeBuiltin("node:zlib");
+    const { promisify } = await importNodeBuiltin("node:util");
+    const gzipAsync = promisify(gzip);
+    const compressed = await gzipAsync(view);
+    return toUint8Array(compressed);
+  }
+  if (typeof CompressionStream === "undefined")
+    throw new BytecodecError(
+      "GZIP_COMPRESSION_UNAVAILABLE",
+      "gzip compression not available in this environment."
+    );
+  return compressWithStream(view, "gzip");
+}
+async function compressWithStream(bytes, format) {
+  const compressedStream = new Blob([toBufferSource(bytes)]).stream().pipeThrough(new CompressionStream(format));
+  const arrayBuffer = await new Response(compressedStream).arrayBuffer();
+  return new Uint8Array(arrayBuffer);
+}
+async function fromCompressed(bytes) {
+  const view = toUint8Array(bytes);
+  if (isNodeRuntime()) {
+    const { gunzip } = await importNodeBuiltin("node:zlib");
+    const { promisify } = await importNodeBuiltin("node:util");
+    const gunzipAsync = promisify(gunzip);
+    const decompressed = await gunzipAsync(view);
+    return toUint8Array(decompressed);
+  }
+  if (typeof DecompressionStream === "undefined")
+    throw new BytecodecError(
+      "GZIP_DECOMPRESSION_UNAVAILABLE",
+      "gzip decompression not available in this environment."
+    );
+  return decompressWithStream(view, "gzip");
+}
+async function decompressWithStream(bytes, format) {
+  const decompressedStream = new Blob([toBufferSource(bytes)]).stream().pipeThrough(new DecompressionStream(format));
+  const arrayBuffer = await new Response(decompressedStream).arrayBuffer();
+  return new Uint8Array(arrayBuffer);
+}
+function toBufferSource(bytes) {
+  return toUint8Array(bytes);
+}
+function concat(sources) {
+  if (!Array.isArray(sources))
+    throw new BytecodecError(
+      "CONCAT_INVALID_INPUT",
+      "concat expects an array of ByteSource items"
+    );
+  if (sources.length === 0) return new Uint8Array(0);
+  const arrays = sources.map((source, index) => {
+    try {
+      return toUint8Array(source);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new BytecodecError(
+        "CONCAT_NORMALIZE_FAILED",
+        `concat failed to normalize input at index ${index}: ${message}`
+      );
+    }
+  });
+  const totalLength = arrays.reduce((sum, array) => sum + array.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const array of arrays) {
+    if (array.length === 0) continue;
+    result.set(array, offset);
+    offset += array.length;
+  }
+  return result;
+}
+
 // node_modules/qr/index.js
 var chCodes = { newline: 10, reset: 27 };
 function assertNumber(n) {
@@ -1844,6 +2101,23 @@ var QRError = class extends Error {
     this.name = "QRError";
   }
 };
+async function optimizeEncoding(value) {
+  if (typeof value !== "string") throw new QRError("VALUE_IS_NOT_A_STRING");
+  let utf8bytes;
+  const bytes = fromString(value);
+  const compressed = await toCompressed(bytes);
+  compressed.length < bytes.length ? utf8bytes = concat([[1], compressed]) : utf8bytes = concat([[0], bytes]);
+  return toBase45String(utf8bytes);
+}
+async function restoreEncoding(scanResult) {
+  if (typeof scanResult !== "string") throw new QRError("VALUE_IS_NOT_A_STRING");
+  let utf8bytes;
+  const bytes = fromBase45String(scanResult);
+  const flag = bytes[0];
+  const value = bytes.subarray(1);
+  flag === 1 ? utf8bytes = await fromCompressed(value) : utf8bytes = value;
+  return toString(utf8bytes);
+}
 function runAfterPaint(callback) {
   if (typeof globalThis.requestAnimationFrame === "function") {
     globalThis.requestAnimationFrame(() => {
@@ -2402,6 +2676,29 @@ async function scan() {
   });
 }
 var QR = class {
+  /**
+   * Optimizes a string for QR transport by optionally compressing it and always base45 encoding it.
+   *
+   * This is useful for structured payloads such as stringified JSON where raw QR encoding
+   * would otherwise become visually noisy or require a denser symbol.
+   *
+   * @param value String value to optimize for QR transport.
+   * @returns A base45 string with a one-byte strategy flag prefix.
+   * @throws {QRError} Thrown when `value` is not a string.
+   */
+  static optimizeEncoding(value) {
+    return optimizeEncoding(value);
+  }
+  /**
+   * Restores an optimized QR payload produced by {@link optimizeEncoding}.
+   *
+   * @param value Base45-encoded optimized payload.
+   * @returns The original decoded string.
+   * @throws {QRError} Thrown when `value` is not a string.
+   */
+  static restoreEncoding(value) {
+    return restoreEncoding(value);
+  }
   /**
    * Opens a modal dialog that renders the provided string as a QR code.
    *
@@ -5338,7 +5635,10 @@ var nameInput = document.getElementById("name");
 var controlsElement = document.getElementById("controls");
 var qrModeButton = document.getElementById("qrMode");
 var copyPasteModeButton = document.getElementById("copyPasteMode");
-var profile = await messagesStore.get("profile") ?? { name: "", demoMode: "qr" };
+var profile = await messagesStore.get("profile") ?? {
+  name: "",
+  demoMode: "qr"
+};
 var demoMode = profile.demoMode ?? "qr";
 nameInput.value = profile.name ?? "";
 function appendMessage(message) {
@@ -5449,19 +5749,21 @@ function renderControls() {
   bindControlEvents();
 }
 function readHandshakeValue(id) {
-  return JSON.parse(document.getElementById(id).value);
+  return document.getElementById(id).value;
 }
 async function readSignal(kind) {
-  if (demoMode === "qr") return JSON.parse(await QR.scan());
-  return readHandshakeValue(kind === "offer" ? "offerInput" : "answerInput");
+  const payload = demoMode === "qr" ? await QR.scan() : readHandshakeValue(kind === "offer" ? "offerInput" : "answerInput");
+  return JSON.parse(await QR.restoreEncoding(payload));
 }
-function writeSignal(kind, value) {
-  const serialized = JSON.stringify(value);
+async function writeSignal(kind, value) {
+  const optimized = await QR.optimizeEncoding(JSON.stringify(value));
   if (demoMode === "qr") {
-    QR.display(serialized);
+    QR.display(optimized);
     return;
   }
-  document.getElementById(kind === "offer" ? "offerOutput" : "answerOutput").value = serialized;
+  document.getElementById(
+    kind === "offer" ? "offerOutput" : "answerOutput"
+  ).value = optimized;
 }
 async function copyField(id) {
   const field = document.getElementById(id);
@@ -5495,13 +5797,13 @@ function setupPeer(nextPeer) {
 function bindControlEvents() {
   document.getElementById("makeOffer").onclick = async () => {
     const offer = await P2PConnection.makeOffer();
-    writeSignal("offer", offer);
+    await writeSignal("offer", offer);
   };
   document.getElementById("acceptOffer").onclick = async () => {
     const offer = await readSignal("offer");
     const { offeror, offeree } = await P2PConnection.acceptOffer(offer);
     setupPeer(new P2PConnection(offeree));
-    writeSignal("answer", offeror);
+    await writeSignal("answer", offeror);
     await peer.ready();
     peer.sendMessage({ type: "snapshot", payload: messages.toJSON() });
   };

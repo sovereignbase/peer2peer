@@ -68,7 +68,7 @@
     "@msgpack/msgpack": "^3.1.3",
     "@sovereignbase/convergent-replicated-list": "^1.0.7",
     "@sovereignbase/offline-kv-store": "^1.0.2",
-    "@sovereignbase/qr": "^1.1.0"
+    "@sovereignbase/qr": "^1.2.0"
   },
   "repository": {
     "type": "git",
