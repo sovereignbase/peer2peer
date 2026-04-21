@@ -5353,6 +5353,7 @@ function renderMessages() {
   }
 }
 function closeQrDisplay() {
+  if (demoMode !== "qr") return;
   queueMicrotask(() => {
     window.dispatchEvent(new PointerEvent("pointerup"));
     window.dispatchEvent(new MouseEvent("mouseup"));
@@ -5450,6 +5451,18 @@ function renderControls() {
 function readHandshakeValue(id) {
   return JSON.parse(document.getElementById(id).value);
 }
+async function readSignal(kind) {
+  if (demoMode === "qr") return JSON.parse(await QR.scan());
+  return readHandshakeValue(kind === "offer" ? "offerInput" : "answerInput");
+}
+function writeSignal(kind, value) {
+  const serialized = JSON.stringify(value);
+  if (demoMode === "qr") {
+    QR.display(serialized);
+    return;
+  }
+  document.getElementById(kind === "offer" ? "offerOutput" : "answerOutput").value = serialized;
+}
 async function copyField(id) {
   const field = document.getElementById(id);
   if (!field?.value) return;
@@ -5482,25 +5495,18 @@ function setupPeer(nextPeer) {
 function bindControlEvents() {
   document.getElementById("makeOffer").onclick = async () => {
     const offer = await P2PConnection.makeOffer();
-    const value = JSON.stringify(offer);
-    if (demoMode === "copy") {
-      document.getElementById("offerOutput").value = value;
-      return;
-    }
-    QR.display(value);
+    writeSignal("offer", offer);
   };
   document.getElementById("acceptOffer").onclick = async () => {
-    const offer = demoMode === "copy" ? readHandshakeValue("offerInput") : JSON.parse(await QR.scan());
+    const offer = await readSignal("offer");
     const { offeror, offeree } = await P2PConnection.acceptOffer(offer);
     setupPeer(new P2PConnection(offeree));
-    const value = JSON.stringify(offeror);
-    if (demoMode === "copy") document.getElementById("answerOutput").value = value;
-    else QR.display(value);
+    writeSignal("answer", offeror);
     await peer.ready();
     peer.sendMessage({ type: "snapshot", payload: messages.toJSON() });
   };
   document.getElementById("finishOffer").onclick = async () => {
-    const offeror = demoMode === "copy" ? readHandshakeValue("answerInput") : JSON.parse(await QR.scan());
+    const offeror = await readSignal("answer");
     setupPeer(new P2PConnection(offeror));
     await peer.ready();
     closeQrDisplay();
