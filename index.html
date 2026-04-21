@@ -1,89 +1,400 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <title>Package Name</title>
-    <script
-      src="https://www.w3.org/Tools/respec/respec-w3c"
-      class="remove"
-      defer
-    ></script>
-    <script class="remove">
-      var respecConfig = {
-        specStatus: 'unofficial',
-        latestVersion: null,
-        edDraftURI: null,
-        editors: [
-          { name: 'Jori Lehtinen', url: 'https://github.com/jortsupetterson' },
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Peer to Peer Demo</title>
+    <meta
+      name="description"
+      content="Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs."
+    />
+    <meta
+      name="keywords"
+      content="peer2peer, sovereignbase, realtime client, browser sync, BroadcastChannel, WebSocket, local-first, TypeScript, JavaScript"
+    />
+    <meta name="author" content="Jori Lehtinen" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta name="application-name" content="peer2peer" />
+    <link rel="canonical" href="https://sovereignbase.dev/peer2peer/" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://sovereignbase.dev/sovereignbase_logo.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="https://sovereignbase.dev/sovereignbase_logo.png"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Sovereignbase" />
+    <meta property="og:title" content="Sovereignbase Peer to Peer Demo" />
+    <meta
+      property="og:description"
+      content="Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs."
+    />
+    <meta property="og:url" content="https://sovereignbase.dev/peer2peer/" />
+    <meta
+      property="og:image"
+      content="https://sovereignbase.dev/sovereignbase_social_sharing_image.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Sovereignbase Peer to Peer Demo realtime browser demo"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Sovereignbase Peer to Peer Demo" />
+    <meta
+      name="twitter:description"
+      content="Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs."
+    />
+    <meta
+      name="twitter:image"
+      content="https://sovereignbase.dev/sovereignbase_social_sharing_image.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="Sovereignbase Peer to Peer Demo realtime browser demo"
+    />
+    <meta name="twitter:creator" content="@jortsupetterson" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
           {
-            name: 'GPT-5.4',
-            url: 'https://openai.com/fi-FI/index/introducing-gpt-5-4/',
+            "@type": "Organization",
+            "@id": "https://sovereignbase.dev/peer2peer/#organization",
+            "name": "Sovereignbase",
+            "url": "https://github.com/sovereignbase",
+            "alternateName": ["@sovereignbase"],
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://sovereignbase.dev/sovereignbase_logo.png",
+              "width": 320,
+              "height": 320
+            },
+            "sameAs": [
+              "https://github.com/sovereignbase",
+              "https://jsr.io/@sovereignbase",
+              "https://www.npmjs.com/org/sovereignbase"
+            ]
           },
-        ],
-        github: 'sovereignbase/package-name',
-        shortName: 'pn',
-        xref: 'web-platform',
-        group: 'none',
-        lint: {
-          'informative-dfn': true,
-          'local-refs-exist': true,
-          'no-unused-dfns': true,
-        },
+          {
+            "@type": "Person",
+            "@id": "https://sovereignbase.dev/peer2peer/#author",
+            "name": "Jori Lehtinen",
+            "url": "https://github.com/jortsupetterson",
+            "alternateName": ["jortsupetterson", "@jortsupetterson"],
+            "sameAs": [
+              "https://github.com/jortsupetterson",
+              "https://www.npmjs.com/~jortsupetterson",
+              "https://jsr.io/user/ab186a13-a64f-429e-a757-927aa4fa6e6c",
+              "https://linkedin.com/in/jortsupetterson",
+              "https://x.com/jortsupetterson",
+              "https://www.youtube.com/@jortsupetterson"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://sovereignbase.dev/peer2peer/#website",
+            "url": "https://sovereignbase.dev/peer2peer/",
+            "name": "peer2peer",
+            "inLanguage": "en",
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/#organization"
+            }
+          },
+          {
+            "@type": "SoftwareSourceCode",
+            "@id": "https://sovereignbase.dev/peer2peer/#software",
+            "name": "@sovereignbase/peer2peer",
+            "alternateName": ["peer2peer"],
+            "url": "https://sovereignbase.dev/peer2peer/",
+            "description": "Realtime browser client that synchronizes state between tabs.",
+            "codeRepository": "https://github.com/sovereignbase/peer2peer",
+            "license": "https://www.apache.org/licenses/LICENSE-2.0",
+            "programmingLanguage": ["TypeScript", "JavaScript"],
+            "runtimePlatform": ["Web Browser", "Web Worker"],
+            "keywords": [
+              "peer2peer",
+              "realtime client",
+              "browser sync",
+              "BroadcastChannel",
+              "WebSocket"
+            ],
+            "image": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
+            "isAccessibleForFree": true,
+            "author": {
+              "@id": "https://sovereignbase.dev/peer2peer/#author"
+            },
+            "maintainer": {
+              "@id": "https://sovereignbase.dev/peer2peer/#organization"
+            },
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/#organization"
+            },
+            "sameAs": [
+              "https://jsr.io/@sovereignbase/peer2peer",
+              "https://www.npmjs.com/package/@sovereignbase/peer2peer"
+            ]
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://sovereignbase.dev/peer2peer/#webpage",
+            "url": "https://sovereignbase.dev/peer2peer/",
+            "name": "Sovereignbase Peer to Peer Demo",
+            "description": "Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs.",
+            "inLanguage": "en",
+            "isPartOf": {
+              "@id": "https://sovereignbase.dev/peer2peer/#website"
+            },
+            "about": {
+              "@id": "https://sovereignbase.dev/peer2peer/#software"
+            },
+            "author": {
+              "@id": "https://sovereignbase.dev/peer2peer/#author"
+            },
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/#organization"
+            },
+            "primaryImageOfPage": {
+              "@type": "ImageObject",
+              "url": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
+              "width": 1200,
+              "height": 630
+            }
+          }
+        ]
       }
     </script>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+        background: #000;
+        color: #fff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(
+            circle at top,
+            rgba(255, 255, 255, 0.1),
+            transparent 36%
+          ),
+          #000;
+        color: #fff;
+      }
+
+      main {
+        width: min(100%, 42rem);
+        margin: 0 auto;
+        padding: 1.25rem;
+      }
+
+      .shell {
+        display: grid;
+        gap: 1.25rem;
+        padding: 1.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 1.25rem;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.45);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 8vw, 3.4rem);
+        line-height: 0.95;
+      }
+
+      .lede {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.76);
+        line-height: 1.6;
+      }
+
+      .controls {
+        display: grid;
+        gap: 1rem;
+      }
+
+      label {
+        display: grid;
+        gap: 0.55rem;
+        font-size: 0.95rem;
+      }
+
+      input,
+      a {
+        border-radius: 999px;
+      }
+
+      input[type='text'],
+      input[type='number'] {
+        width: 100%;
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: #050505;
+        color: #fff;
+        font: inherit;
+      }
+
+      input::placeholder {
+        color: rgba(255, 255, 255, 0.38);
+      }
+
+      input[type='text']:focus,
+      input[type='number']:focus {
+        outline: none;
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .toggle input {
+        width: 1.35rem;
+        height: 1.35rem;
+        margin: 0;
+        accent-color: #fff;
+      }
+
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .links a,
+      .spec-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        min-height: 2.5rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #fff;
+        text-decoration: none;
+      }
+
+      .links a:hover,
+      .spec-link:hover {
+        border-color: rgba(255, 255, 255, 0.22);
+      }
+
+      .spec-link {
+        width: fit-content;
+      }
+
+      .links a {
+        font-weight: 600;
+      }
+
+      .links img {
+        width: 1rem;
+        height: 1rem;
+        flex: 0 0 1rem;
+      }
+
+      @media (min-width: 40rem) {
+        main {
+          padding: 2rem;
+        }
+
+        .shell {
+          padding: 1.75rem;
+        }
+
+        .controls {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .toggle {
+          grid-column: 1 / -1;
+        }
+      }
+    </style>
   </head>
   <body>
-    <section id="abstract">
-      <p>This is required.</p>
-    </section>
-    <section id="sotd">
-      <p>This is required.</p>
-    </section>
-    <section class="informative">
-      <h2>Introduction</h2>
-      <p>Some informative introductory text.</p>
-      <aside class="note" title="A useful note">
-        <p>I'm a note!</p>
-      </aside>
-    </section>
-    <section>
-      <h2>A section</h2>
-      <aside class="example">
-        <p>This is an example.</p>
-        <pre class="js">
-        // Automatic syntax highlighting
-        function someJavaScript(){}
-        </pre>
-      </aside>
-      <section>
-        <h3>I'm a sub-section</h3>
-        <p class="issue" data-number="121">
-          <!-- Issue can automatically be populated from GitHub -->
+    <main>
+      <section class="shell">
+        <nav class="links" aria-label="Project links">
+          <a href="https://jsr.io/@sovereignbase/peer2peer">
+            <img src="https://cdn.simpleicons.org/jsr/white" alt="" />
+            jsr
+          </a>
+          <a href="https://www.npmjs.com/package/@sovereignbase/peer2peer">
+            <img src="https://cdn.simpleicons.org/npm/white" alt="" />
+            npm
+          </a>
+          <a href="https://github.com/sovereignbase/peer2peer">
+            <img src="https://cdn.simpleicons.org/github/white" alt="" />
+            GitHub
+          </a>
+        </nav>
+
+        <h1>P2P tool for Sovereignbase</h1>
+        <p class="lede">
+          Open this page in another tab and edit either view. The form state
+          stays in sync between tabs in real time.
         </p>
+
+        <div class="controls">
+          <h5>Step 1. (Device A)</h5>
+          <p>Displays a RTCPeerConnection offer as a qr code</p>
+          <button id="makeOffer">Make an offer</button>
+
+          <h5>Step 2. (Device B)</h5>
+          <p>
+            Starts a scanner procesesses the RTCPeerConnection offer and
+            displays an answer as a qr code
+          </p>
+          <button id="acceptOffer">Accept the offer</button>
+
+          <h5>Step 3. (Device A)</h5>
+          <p>Scans the QR-Code and resolves the RTCPeerConnection</p>
+          <button id="finishOffer">Finish the offer</button>
+
+          <label for="chat">
+            chat
+            <input id="chat" type="text" placeholder="Write a message..." />
+          </label>
+        </div>
+        <div class="chat">
+          <div id="messages"></div>
+          <div for="message-input">
+            <input
+              id="message-input"
+              type="text"
+              placeholder="Write a message..."
+            />
+            <button id="send">send</button>
+          </div>
+        </div>
       </section>
-    </section>
-    <section data-dfn-for="Foo">
-      <h2>Start your spec!</h2>
-      <pre class="idl">
-        [Exposed=Window]
-        interface Foo {
-        attribute DOMString bar;
-        undefined doTheFoo();
-        };
-      </pre>
-      <p>The <dfn>Foo</dfn> interface represents a {{Foo}}.</p>
-      <p>
-        The <dfn>doTheFoo()</dfn> method does the foo. Call it by running
-        {{Foo/doTheFoo()}}.
-      </p>
-      <ol class="algorithm">
-        <li>A |variable:DOMString| can be declared like this.</li>
-      </ol>
-    </section>
-    <section id="conformance">
-      <p>
-        This is required for specifications that contain normative material.
-      </p>
-    </section>
+    </main>
+    <script type="module" src="./index.js"></script>
   </body>
 </html>
