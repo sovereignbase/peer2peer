@@ -20,6 +20,7 @@ document.getElementById('acceptOffer').addEventListener('click', async () => {
   await peer.ready()
 
   peer.onmessage((data) => {
+    if (data === 'connected') document.click()
     document.body.append(document.createTextNode(String(data)))
     document.body.append(document.createElement('br'))
   })
@@ -31,9 +32,12 @@ document.getElementById('finishOffer').addEventListener('click', async () => {
   peer = new P2PConnection(offeror)
   await peer.ready()
 
+  document.click()
+
   peer.onmessage((data) => {
     messages.merge(data)
   })
+  peer.send('connected')
 })
 
 let snapshot = undefined
@@ -51,10 +55,10 @@ for (const message of messages) {
   messagesElement.append(document.createElement('br'))
 }
 
-document.getElementById('send').addEventListener('click', (event) => {
+document.getElementById('sendMessage').addEventListener('click', (event) => {
   const msginput = document.getElementById('message-input')
   peer.send(msginput.value)
-  msginput.value = 0
+  msginput.value = ''
 })
 
 messages.addEventListener('delta', ({ detail }) => {

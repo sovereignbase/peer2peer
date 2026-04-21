@@ -4083,8 +4083,1256 @@ var QR = class {
   }
 };
 
+// node_modules/uuid/dist/regex.js
+var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+// node_modules/uuid/dist/validate.js
+function validate(uuid) {
+  return typeof uuid === "string" && regex_default.test(uuid);
+}
+var validate_default = validate;
+
+// node_modules/uuid/dist/stringify.js
+var byteToHex = [];
+for (let i = 0; i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+function unsafeStringify(arr, offset = 0) {
+  return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+}
+
+// node_modules/uuid/dist/rng.js
+var getRandomValues;
+var rnds8 = new Uint8Array(16);
+function rng() {
+  if (!getRandomValues) {
+    if (typeof crypto === "undefined" || !crypto.getRandomValues) {
+      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+    }
+    getRandomValues = crypto.getRandomValues.bind(crypto);
+  }
+  return getRandomValues(rnds8);
+}
+
+// node_modules/uuid/dist/v7.js
+var _state = {};
+function v7(options, buf, offset) {
+  let bytes;
+  if (options) {
+    bytes = v7Bytes(options.random ?? options.rng?.() ?? rng(), options.msecs, options.seq, buf, offset);
+  } else {
+    const now = Date.now();
+    const rnds = rng();
+    updateV7State(_state, now, rnds);
+    bytes = v7Bytes(rnds, _state.msecs, _state.seq, buf, offset);
+  }
+  return buf ?? unsafeStringify(bytes);
+}
+function updateV7State(state, now, rnds) {
+  state.msecs ??= -Infinity;
+  state.seq ??= 0;
+  if (now > state.msecs) {
+    state.seq = rnds[6] << 23 | rnds[7] << 16 | rnds[8] << 8 | rnds[9];
+    state.msecs = now;
+  } else {
+    state.seq = state.seq + 1 | 0;
+    if (state.seq === 0) {
+      state.msecs++;
+    }
+  }
+  return state;
+}
+function v7Bytes(rnds, msecs, seq, buf, offset = 0) {
+  if (rnds.length < 16) {
+    throw new Error("Random bytes length must be >= 16");
+  }
+  if (!buf) {
+    buf = new Uint8Array(16);
+    offset = 0;
+  } else {
+    if (offset < 0 || offset + 16 > buf.length) {
+      throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+    }
+  }
+  msecs ??= Date.now();
+  seq ??= rnds[6] * 127 << 24 | rnds[7] << 16 | rnds[8] << 8 | rnds[9];
+  buf[offset++] = msecs / 1099511627776 & 255;
+  buf[offset++] = msecs / 4294967296 & 255;
+  buf[offset++] = msecs / 16777216 & 255;
+  buf[offset++] = msecs / 65536 & 255;
+  buf[offset++] = msecs / 256 & 255;
+  buf[offset++] = msecs & 255;
+  buf[offset++] = 112 | seq >>> 28 & 15;
+  buf[offset++] = seq >>> 20 & 255;
+  buf[offset++] = 128 | seq >>> 14 & 63;
+  buf[offset++] = seq >>> 6 & 255;
+  buf[offset++] = seq << 2 & 255 | rnds[10] & 3;
+  buf[offset++] = rnds[11];
+  buf[offset++] = rnds[12];
+  buf[offset++] = rnds[13];
+  buf[offset++] = rnds[14];
+  buf[offset++] = rnds[15];
+  return buf;
+}
+var v7_default = v7;
+
+// node_modules/uuid/dist/version.js
+function version(uuid) {
+  if (!validate_default(uuid)) {
+    throw TypeError("Invalid UUID");
+  }
+  return parseInt(uuid.slice(14, 15), 16);
+}
+var version_default = version;
+
+// node_modules/@sovereignbase/utils/dist/index.js
+var PROTOTYPE_LIST = [
+  "null",
+  "undefined",
+  "boolean",
+  "string",
+  "symbol",
+  "number",
+  "bigint",
+  "record",
+  "array",
+  "map",
+  "set",
+  "date",
+  "regexp",
+  "error",
+  "arraybuffer",
+  "sharedarraybuffer",
+  "dataview",
+  "int8array",
+  "uint8array",
+  "uint8clampedarray",
+  "int16array",
+  "uint16array",
+  "int32array",
+  "uint32array",
+  "float32array",
+  "float64array",
+  "bigint64array",
+  "biguint64array",
+  "url",
+  "urlsearchparams",
+  "blob",
+  "file",
+  "unknown"
+];
+function prototype(value) {
+  let type = typeof value;
+  if (type === "object") {
+    type = Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
+  }
+  if (type === "object") type = "record";
+  if (!PROTOTYPE_LIST.includes(type)) {
+    type = "unknown";
+  }
+  return type;
+}
+function isUuidV7(value) {
+  if (typeof value !== "string") return false;
+  try {
+    return version_default(value) === 7;
+  } catch {
+    return false;
+  }
+}
+function safeStructuredClone(value) {
+  try {
+    return [true, structuredClone(value)];
+  } catch {
+    return [false];
+  }
+}
+
+// node_modules/@sovereignbase/convergent-replicated-list/dist/index.js
+function assertListIndices(crListReplica) {
+  if (!crListReplica.cursor) return;
+  let index = crListReplica.size;
+  while (crListReplica.cursor.next)
+    crListReplica.cursor = crListReplica.cursor.next;
+  while (index >= 1) {
+    index--;
+    crListReplica.cursor.index = index;
+    if (crListReplica.cursor.prev === void 0) break;
+    crListReplica.cursor = crListReplica.cursor.prev;
+  }
+}
+var CRListError = class extends Error {
+  /**
+   * The semantic error code for the failure.
+   */
+  code;
+  /**
+   * Creates a typed CRList error.
+   *
+   * @param code - The semantic error code.
+   * @param message - An optional human-readable detail message.
+   */
+  constructor(code, message) {
+    const detail = message ?? code;
+    super(`{@sovereignbase/convergent-replicated-list} ${detail}`);
+    this.code = code;
+    this.name = "CRListError";
+  }
+};
+function walkToIndex(targetIndex, crListReplica) {
+  if (targetIndex < 0 || targetIndex >= crListReplica.size)
+    throw new CRListError("INDEX_OUT_OF_BOUNDS", "Index out of bounds");
+  if (!crListReplica.cursor)
+    throw new CRListError("LIST_EMPTY", "List is empty");
+  const direction = crListReplica.cursor.index > targetIndex ? "prev" : "next";
+  while (crListReplica.cursor && crListReplica.cursor.index !== targetIndex) {
+    crListReplica.cursor = crListReplica.cursor[direction];
+  }
+}
+function insertBetween(prev, linkedListEntry, next) {
+  linkedListEntry.prev = prev;
+  linkedListEntry.next = next;
+  if (prev) prev.next = linkedListEntry;
+  if (next) next.prev = linkedListEntry;
+}
+function flattenAndLinkTrustedState(crListReplica) {
+  crListReplica.cursor = void 0;
+  const resolvedSiblingPredecessors = /* @__PURE__ */ new Set();
+  for (const entry of crListReplica.parentMap.values()) {
+    if (!entry) continue;
+    entry.prev = void 0;
+    entry.next = void 0;
+  }
+  const keys = [...crListReplica.childrenMap.keys()].sort(
+    (a, b) => a > b ? 1 : -1
+  );
+  let hasProgress = true;
+  while (hasProgress) {
+    hasProgress = false;
+    for (const predecessorIdentifier of keys) {
+      if (resolvedSiblingPredecessors.has(predecessorIdentifier)) continue;
+      const siblings = crListReplica.childrenMap.get(predecessorIdentifier);
+      if (!siblings) continue;
+      if (siblings.length > 1)
+        siblings.sort((a, b) => a.uuidv7 > b.uuidv7 ? 1 : -1);
+      const predecessor = predecessorIdentifier === "\0" ? void 0 : crListReplica.parentMap.get(predecessorIdentifier);
+      if (predecessor && !predecessor.prev && !predecessor.next && crListReplica.cursor !== predecessor)
+        continue;
+      let prev = predecessor ?? crListReplica.cursor;
+      const predecessorNext = predecessor?.next;
+      if (siblings.length === 1) {
+        const sibling = siblings[0];
+        insertBetween(prev, sibling, sibling.next);
+        prev = sibling;
+        if (predecessorNext && predecessorNext !== sibling) {
+          prev.next = predecessorNext;
+          predecessorNext.prev = prev;
+        } else {
+          prev.next = void 0;
+        }
+        if (!predecessorNext) crListReplica.cursor = prev;
+        resolvedSiblingPredecessors.add(predecessorIdentifier);
+        hasProgress = true;
+        continue;
+      }
+      const siblingSet = new Set(siblings);
+      for (let index = 0; index < siblings.length; index++) {
+        const sibling = siblings[index];
+        const next = siblings[index + 1];
+        insertBetween(prev, sibling, sibling.next);
+        prev = sibling;
+        if (next) {
+          prev.next = next;
+          next.prev = prev;
+        } else if (predecessorNext && !siblingSet.has(predecessorNext)) {
+          prev.next = predecessorNext;
+          predecessorNext.prev = prev;
+        } else {
+          prev.next = void 0;
+        }
+      }
+      if (!predecessorNext) crListReplica.cursor = prev;
+      resolvedSiblingPredecessors.add(predecessorIdentifier);
+      hasProgress = true;
+    }
+  }
+  crListReplica.size = crListReplica.parentMap.size;
+}
+function transformSnapshotEntryToStateEntry(valueEntry, crListReplica) {
+  if (valueEntry === null || valueEntry === void 0) return void 0;
+  if (!isUuidV7(valueEntry.uuidv7) || crListReplica.tombstones.has(valueEntry.uuidv7) || crListReplica.parentMap.has(valueEntry.uuidv7) || !isUuidV7(valueEntry.predecessor) && valueEntry.predecessor !== "\0" && !crListReplica.tombstones.has(valueEntry.predecessor))
+    return void 0;
+  const [cloned, copiedValue] = safeStructuredClone(valueEntry.value);
+  if (!cloned) return void 0;
+  return {
+    uuidv7: valueEntry.uuidv7,
+    value: copiedValue,
+    predecessor: valueEntry.predecessor,
+    index: 0,
+    next: void 0,
+    prev: void 0
+  };
+}
+function updateEntryToMaps(crListReplica, linkedListEntry, deltaBuf) {
+  crListReplica.parentMap.set(linkedListEntry.uuidv7, linkedListEntry);
+  const siblings = crListReplica.childrenMap.get(linkedListEntry.predecessor);
+  if (siblings) {
+    siblings.push(linkedListEntry);
+  } else {
+    crListReplica.childrenMap.set(linkedListEntry.predecessor, [
+      linkedListEntry
+    ]);
+  }
+  if (deltaBuf && !Array.isArray(deltaBuf.values)) deltaBuf.values = [];
+  if (deltaBuf?.values)
+    deltaBuf.values.push({
+      uuidv7: linkedListEntry.uuidv7,
+      value: linkedListEntry.value,
+      predecessor: linkedListEntry.predecessor
+    });
+}
+function deleteEntryFromMaps(crListReplica, linkedListEntry) {
+  crListReplica.parentMap.delete(linkedListEntry.uuidv7);
+  const siblings = crListReplica.childrenMap.get(linkedListEntry.predecessor);
+  if (!siblings) return;
+  const index = siblings.indexOf(linkedListEntry);
+  if (index !== -1) siblings.splice(index, 1);
+}
+function deleteLinkedEntry(crListReplica, linkedListEntry, deltaBuf) {
+  const prev = linkedListEntry.prev;
+  const next = linkedListEntry.next;
+  crListReplica.tombstones.add(linkedListEntry.uuidv7);
+  if (deltaBuf && !Array.isArray(deltaBuf.tombstones)) deltaBuf.tombstones = [];
+  deltaBuf?.tombstones?.push(linkedListEntry.uuidv7);
+  if (prev) prev.next = next;
+  if (next) {
+    next.prev = prev;
+  }
+  void deleteEntryFromMaps(crListReplica, linkedListEntry);
+  if (crListReplica.cursor === linkedListEntry)
+    crListReplica.cursor = next ?? prev;
+  linkedListEntry.prev = void 0;
+  linkedListEntry.next = void 0;
+  crListReplica.size = crListReplica.parentMap.size;
+}
+function moveEntryToPredecessor(crListReplica, linkedListEntry, predecessor, deltaBuf) {
+  void deleteEntryFromMaps(crListReplica, linkedListEntry);
+  linkedListEntry.predecessor = predecessor;
+  void updateEntryToMaps(crListReplica, linkedListEntry, deltaBuf);
+}
+function indexFromPropertyKey(index) {
+  if (typeof index !== "string" || !/^(0|[1-9]\d*)$/.test(index))
+    return void 0;
+  const listIndex = Number(index);
+  return Number.isSafeInteger(listIndex) ? listIndex : void 0;
+}
+function __create(snapshot2) {
+  const crListReplica = {
+    size: 0,
+    cursor: void 0,
+    tombstones: /* @__PURE__ */ new Set(),
+    parentMap: /* @__PURE__ */ new Map(),
+    childrenMap: /* @__PURE__ */ new Map()
+  };
+  if (!snapshot2 || prototype(snapshot2) !== "record") return crListReplica;
+  if (Object.hasOwn(snapshot2, "tombstones") && Array.isArray(snapshot2.tombstones)) {
+    for (const tombstone of snapshot2.tombstones) {
+      if (crListReplica.tombstones.has(tombstone) || !isUuidV7(tombstone))
+        continue;
+      crListReplica.tombstones.add(tombstone);
+    }
+  }
+  if (!Object.hasOwn(snapshot2, "values") || !Array.isArray(snapshot2.values))
+    return crListReplica;
+  for (const valueEntry of snapshot2.values) {
+    const linkedListEntry = transformSnapshotEntryToStateEntry(
+      valueEntry,
+      crListReplica
+    );
+    if (!linkedListEntry) continue;
+    void updateEntryToMaps(crListReplica, linkedListEntry);
+  }
+  void flattenAndLinkTrustedState(crListReplica);
+  void assertListIndices(crListReplica);
+  return crListReplica;
+}
+function __read(targetIndex, crListReplica) {
+  try {
+    void walkToIndex(targetIndex, crListReplica);
+    return structuredClone(crListReplica?.cursor?.value);
+  } catch {
+    return void 0;
+  }
+}
+function __update(listIndex, listValues, crListReplica, mode) {
+  if (listIndex < 0 || listIndex > crListReplica.size)
+    throw new CRListError("INDEX_OUT_OF_BOUNDS");
+  if (!Array.isArray(listValues))
+    throw new CRListError(
+      "UPDATE_EXPECTED_AN_ARRAY",
+      "`listValues` must be an Array"
+    );
+  if (listValues.length === 0) return false;
+  const change = {};
+  const delta = { values: [], tombstones: [] };
+  let shiftCursor;
+  for (const listValue of listValues) {
+    const [cloned, copiedValue] = safeStructuredClone(listValue);
+    if (!cloned) throw new CRListError("VALUE_NOT_CLONEABLE");
+    const v72 = v7_default();
+    const linkedListEntry = {
+      uuidv7: v72,
+      value: copiedValue,
+      predecessor: "\0",
+      index: 0,
+      next: void 0,
+      prev: void 0
+    };
+    switch (mode) {
+      case "overwrite": {
+        if (listIndex === crListReplica.size) {
+          if (crListReplica.size === 0) {
+            crListReplica.cursor = linkedListEntry;
+            void updateEntryToMaps(crListReplica, linkedListEntry, delta);
+            change[linkedListEntry.index] = linkedListEntry.value;
+            break;
+          }
+          void walkToIndex(crListReplica.size - 1, crListReplica);
+          if (!crListReplica.cursor) return false;
+          linkedListEntry.index = crListReplica.cursor.index + 1;
+          linkedListEntry.predecessor = crListReplica.cursor.uuidv7;
+          insertBetween(crListReplica.cursor, linkedListEntry, void 0);
+          void updateEntryToMaps(crListReplica, linkedListEntry, delta);
+          crListReplica.cursor = linkedListEntry;
+          change[linkedListEntry.index] = structuredClone(linkedListEntry.value);
+          break;
+        }
+        void walkToIndex(listIndex, crListReplica);
+        if (!crListReplica.cursor) return false;
+        const entryToOverwrite = crListReplica.cursor;
+        linkedListEntry.predecessor = entryToOverwrite.predecessor;
+        linkedListEntry.index = entryToOverwrite.index;
+        insertBetween(
+          entryToOverwrite.prev,
+          linkedListEntry,
+          entryToOverwrite.next
+        );
+        if (entryToOverwrite.next) {
+          if (entryToOverwrite.next.predecessor === entryToOverwrite.uuidv7) {
+            void moveEntryToPredecessor(
+              crListReplica,
+              entryToOverwrite.next,
+              linkedListEntry.uuidv7,
+              delta
+            );
+          }
+        }
+        void updateEntryToMaps(crListReplica, linkedListEntry, delta);
+        crListReplica.tombstones.add(entryToOverwrite.uuidv7);
+        delta.tombstones?.push(entryToOverwrite.uuidv7);
+        void deleteEntryFromMaps(crListReplica, entryToOverwrite);
+        entryToOverwrite.next = void 0;
+        entryToOverwrite.prev = void 0;
+        crListReplica.cursor = linkedListEntry;
+        change[linkedListEntry.index] = structuredClone(linkedListEntry.value);
+        break;
+      }
+      case "after": {
+        if (crListReplica.size === 0 && listIndex === 0) {
+          crListReplica.cursor = linkedListEntry;
+          void updateEntryToMaps(crListReplica, linkedListEntry, delta);
+          change[linkedListEntry.index] = structuredClone(linkedListEntry.value);
+          break;
+        }
+        if (listIndex === crListReplica.size) {
+          void walkToIndex(crListReplica.size - 1, crListReplica);
+        } else {
+          void walkToIndex(listIndex, crListReplica);
+        }
+        if (!crListReplica.cursor) return false;
+        const next = listIndex === crListReplica.size ? void 0 : crListReplica.cursor.next;
+        shiftCursor = next;
+        linkedListEntry.index = crListReplica.cursor.index + 1;
+        linkedListEntry.predecessor = crListReplica.cursor.uuidv7;
+        insertBetween(crListReplica.cursor, linkedListEntry, next);
+        if (next) {
+          if (next.predecessor === crListReplica.cursor.uuidv7) {
+            void moveEntryToPredecessor(
+              crListReplica,
+              next,
+              linkedListEntry.uuidv7,
+              delta
+            );
+          }
+        }
+        void updateEntryToMaps(crListReplica, linkedListEntry, delta);
+        crListReplica.cursor = linkedListEntry;
+        change[linkedListEntry.index] = structuredClone(linkedListEntry.value);
+        break;
+      }
+      case "before": {
+        if (crListReplica.size === 0 && listIndex === 0) {
+          crListReplica.cursor = linkedListEntry;
+          void updateEntryToMaps(crListReplica, linkedListEntry, delta);
+          change[linkedListEntry.index] = structuredClone(linkedListEntry.value);
+          mode = "after";
+          listIndex = linkedListEntry.index - 1;
+          break;
+        }
+        void walkToIndex(listIndex, crListReplica);
+        if (!crListReplica.cursor) return false;
+        const prev = crListReplica.cursor.prev;
+        shiftCursor = crListReplica.cursor;
+        linkedListEntry.index = crListReplica.cursor.index;
+        linkedListEntry.predecessor = prev?.uuidv7 ?? "\0";
+        insertBetween(prev, linkedListEntry, crListReplica.cursor);
+        if (crListReplica.cursor.predecessor === linkedListEntry.predecessor) {
+          void moveEntryToPredecessor(
+            crListReplica,
+            crListReplica.cursor,
+            linkedListEntry.uuidv7,
+            delta
+          );
+        }
+        void updateEntryToMaps(crListReplica, linkedListEntry, delta);
+        crListReplica.cursor = linkedListEntry;
+        change[linkedListEntry.index] = structuredClone(linkedListEntry.value);
+        mode = "after";
+        listIndex = linkedListEntry.index - 1;
+        break;
+      }
+    }
+    crListReplica.size = crListReplica.parentMap.size;
+    listIndex++;
+  }
+  if (mode !== "overwrite")
+    while (shiftCursor) {
+      shiftCursor.index += listValues.length;
+      shiftCursor = shiftCursor.next;
+    }
+  return { change, delta };
+}
+function __delete(crListReplica, startIndex, endIndex) {
+  const change = {};
+  const delta = { values: [], tombstones: [] };
+  const listIndex = startIndex ?? 0;
+  const targetEndIndex = endIndex ?? crListReplica.size;
+  if (listIndex < 0 || targetEndIndex < listIndex || listIndex > crListReplica.size)
+    throw new CRListError("INDEX_OUT_OF_BOUNDS");
+  const deleteCount = Math.min(targetEndIndex, crListReplica.size) - listIndex;
+  if (deleteCount <= 0) return false;
+  void walkToIndex(listIndex, crListReplica);
+  if (!crListReplica.cursor) return false;
+  let current = crListReplica.cursor;
+  let deleted = 0;
+  while (current && deleted < deleteCount) {
+    const next = current.next;
+    change[current.index] = void 0;
+    void deleteLinkedEntry(crListReplica, current, delta);
+    current = next;
+    deleted++;
+  }
+  crListReplica.size = crListReplica.parentMap.size;
+  while (current) {
+    current.index -= deleted;
+    current = current.next;
+  }
+  return { change, delta };
+}
+function __merge(crListReplica, crListDelta) {
+  if (!crListDelta || prototype(crListDelta) !== "record") return false;
+  const newVals = [];
+  const newTombsIndices = [];
+  const change = {};
+  let needsRelink = false;
+  if (Object.hasOwn(crListDelta, "tombstones") && Array.isArray(crListDelta.tombstones)) {
+    for (const tombstone of crListDelta.tombstones) {
+      if (crListReplica.tombstones.has(tombstone) || !isUuidV7(tombstone))
+        continue;
+      crListReplica.tombstones.add(tombstone);
+      const linkedListEntry = crListReplica.parentMap.get(tombstone);
+      if (linkedListEntry) {
+        void newTombsIndices.push(linkedListEntry.index);
+        void deleteLinkedEntry(crListReplica, linkedListEntry);
+        needsRelink = true;
+      }
+    }
+  }
+  if (!Object.hasOwn(crListDelta, "values") || !Array.isArray(crListDelta.values)) {
+    if (newTombsIndices.length === 0) return false;
+    void assertListIndices(crListReplica);
+    for (const index of newTombsIndices) {
+      change[index] = void 0;
+    }
+    return change;
+  }
+  for (const valueEntry of crListDelta.values) {
+    if (valueEntry === null || valueEntry === void 0) continue;
+    const existingEntry = crListReplica.parentMap.get(valueEntry.uuidv7);
+    if (existingEntry) {
+      if (crListReplica.tombstones.has(valueEntry.uuidv7) || !isUuidV7(valueEntry.predecessor) && valueEntry.predecessor !== "\0")
+        continue;
+      if (existingEntry.predecessor >= valueEntry.predecessor) continue;
+      void moveEntryToPredecessor(
+        crListReplica,
+        existingEntry,
+        valueEntry.predecessor
+      );
+      needsRelink = true;
+      continue;
+    }
+    const linkedListEntry = transformSnapshotEntryToStateEntry(
+      valueEntry,
+      crListReplica
+    );
+    if (!linkedListEntry) continue;
+    const predecessor = linkedListEntry.predecessor === "\0" ? void 0 : crListReplica.parentMap.get(linkedListEntry.predecessor);
+    void updateEntryToMaps(crListReplica, linkedListEntry);
+    void newVals.push(linkedListEntry);
+    if (!needsRelink && linkedListEntry.predecessor === "\0") {
+      if (crListReplica.size === 0) {
+        crListReplica.cursor = linkedListEntry;
+        crListReplica.size = crListReplica.parentMap.size;
+      } else {
+        needsRelink = true;
+      }
+    } else if (!needsRelink && predecessor && !predecessor.next) {
+      linkedListEntry.prev = predecessor;
+      linkedListEntry.index = predecessor.index + 1;
+      predecessor.next = linkedListEntry;
+      crListReplica.cursor = linkedListEntry;
+      crListReplica.size = crListReplica.parentMap.size;
+    } else {
+      needsRelink = true;
+    }
+  }
+  if (needsRelink) {
+    void flattenAndLinkTrustedState(crListReplica);
+    void assertListIndices(crListReplica);
+  }
+  if (newTombsIndices.length === 0 && newVals.length === 0) return false;
+  for (const index of newTombsIndices) {
+    change[index] = void 0;
+  }
+  for (const val of newVals) {
+    change[val.index] = structuredClone(val.value);
+  }
+  return change;
+}
+function __acknowledge(crListReplica) {
+  let largest = false;
+  crListReplica.tombstones.forEach((tombstone) => {
+    if (largest === false || largest < tombstone) largest = tombstone;
+  });
+  if (typeof largest === "string") return largest;
+  return false;
+}
+function __garbageCollect(frontiers, crListReplica) {
+  if (!Array.isArray(frontiers)) return;
+  frontiers.sort();
+  const smallest = frontiers.find((frontier) => isUuidV7(frontier));
+  if (typeof smallest !== "string") return;
+  crListReplica.tombstones.forEach((tombstone, __, tombstones) => {
+    if (tombstone <= smallest) {
+      tombstones.delete(tombstone);
+    }
+  });
+}
+function __snapshot(crListReplica) {
+  return {
+    values: Array.from(crListReplica.parentMap.values()).map(
+      (linkedListEntry) => {
+        if (!linkedListEntry) throw new CRListError("LIST_INTEGRITY_VIOLATION");
+        return {
+          uuidv7: linkedListEntry.uuidv7,
+          value: structuredClone(linkedListEntry.value),
+          predecessor: linkedListEntry.predecessor
+        };
+      }
+    ),
+    tombstones: Array.from(crListReplica.tombstones)
+  };
+}
+var CRList = class {
+  /**
+   * Creates a replicated list from an optional detached structured-clone-compatible snapshot.
+   *
+   * @param snapshot - A previously emitted CRList snapshot.
+   */
+  constructor(snapshot2) {
+    Object.defineProperties(this, {
+      state: {
+        value: __create(snapshot2),
+        enumerable: false,
+        configurable: false,
+        writable: false
+      },
+      eventTarget: {
+        value: new EventTarget(),
+        enumerable: false,
+        configurable: false,
+        writable: false
+      }
+    });
+    return new Proxy(this, {
+      get(target, index, receiver) {
+        const listIndex = indexFromPropertyKey(index);
+        if (listIndex === void 0) return Reflect.get(target, index, receiver);
+        return __read(listIndex, target.state);
+      },
+      has(target, index) {
+        const listIndex = indexFromPropertyKey(index);
+        if (listIndex === void 0) return Reflect.has(target, index);
+        return listIndex >= 0 && listIndex < target.state.size;
+      },
+      set(target, index, value) {
+        const listIndex = indexFromPropertyKey(index);
+        if (listIndex === void 0) return false;
+        try {
+          const result = __update(listIndex, [value], target.state, "overwrite");
+          if (!result) return false;
+          const { delta, change } = result;
+          if (delta)
+            void target.eventTarget.dispatchEvent(
+              new CustomEvent("delta", { detail: delta })
+            );
+          if (change)
+            void target.eventTarget.dispatchEvent(
+              new CustomEvent("change", { detail: change })
+            );
+          return true;
+        } catch (error) {
+          if (error instanceof CRListError) throw error;
+          return false;
+        }
+      },
+      deleteProperty(target, index) {
+        const listIndex = indexFromPropertyKey(index);
+        if (listIndex === void 0) return false;
+        try {
+          const result = __delete(target.state, listIndex, listIndex + 1);
+          if (!result) return false;
+          const { delta, change } = result;
+          if (delta) {
+            void target.eventTarget.dispatchEvent(
+              new CustomEvent("delta", { detail: delta })
+            );
+          }
+          if (change) {
+            void target.eventTarget.dispatchEvent(
+              new CustomEvent("change", { detail: change })
+            );
+          }
+          return true;
+        } catch (error) {
+          if (error instanceof CRListError) throw error;
+          return false;
+        }
+      },
+      ownKeys(target) {
+        return [
+          ...Reflect.ownKeys(target),
+          ...Array.from({ length: target.size }, (_, index) => String(index))
+        ];
+      },
+      getOwnPropertyDescriptor(target, index) {
+        const listIndex = indexFromPropertyKey(index);
+        if (listIndex !== void 0 && listIndex < target.size) {
+          return {
+            value: __read(listIndex, target.state),
+            writable: true,
+            enumerable: true,
+            configurable: true
+          };
+        }
+        return Reflect.getOwnPropertyDescriptor(target, index);
+      }
+    });
+  }
+  /**
+   * The current number of live entries.
+   */
+  get size() {
+    return this.state.size;
+  }
+  /**
+   * Inserts a value before an index.
+   *
+   * If `beforeIndex` is omitted, the value is inserted at the start of the list.
+   *
+   * @param value - The value to insert.
+   * @param beforeIndex - The index to insert before.
+   */
+  prepend(value, beforeIndex) {
+    const result = __update(beforeIndex ?? 0, [value], this.state, "before");
+    if (!result) return;
+    const { delta, change } = result;
+    if (delta)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("delta", { detail: delta })
+      );
+    if (change)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("change", { detail: change })
+      );
+  }
+  /**
+   * Inserts a value after an index.
+   *
+   * If `afterIndex` is omitted, the value is appended at the end of the list.
+   *
+   * @param value - The value to insert.
+   * @param afterIndex - The index to insert after.
+   */
+  append(value, afterIndex) {
+    const result = __update(
+      afterIndex ?? this.state.size,
+      [value],
+      this.state,
+      "after"
+    );
+    if (!result) return;
+    const { delta, change } = result;
+    if (delta)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("delta", { detail: delta })
+      );
+    if (change)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("change", { detail: change })
+      );
+  }
+  /**
+   * Removes the entry at an index.
+   *
+   * @param index - The index to remove.
+   */
+  remove(index) {
+    const result = __delete(this.state, index, index + 1);
+    if (!result) return;
+    const { delta, change } = result;
+    if (delta)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("delta", { detail: delta })
+      );
+    if (change)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("change", { detail: change })
+      );
+  }
+  /**
+   * Applies a remote gossip delta to this list.
+   *
+   * Emits a `change` event when the merge changes the live projection.
+   *
+   * @param delta - The remote CRList delta to merge.
+   */
+  merge(delta) {
+    const change = __merge(this.state, delta);
+    if (change)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("change", { detail: change })
+      );
+  }
+  /**
+   * Emits an acknowledgement frontier for currently retained tombstones.
+   */
+  acknowledge() {
+    const ack = __acknowledge(this.state);
+    if (ack)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("ack", { detail: ack })
+      );
+  }
+  /**
+   * Garbage-collects tombstones that are covered by acknowledgement frontiers.
+   *
+   * @param frontiers - Replica acknowledgement frontiers.
+   */
+  garbageCollect(frontiers) {
+    void __garbageCollect(frontiers, this.state);
+  }
+  /**
+   * Emits the current detached structured-clone-compatible list snapshot.
+   */
+  snapshot() {
+    const snapshot2 = __snapshot(this.state);
+    if (snapshot2)
+      void this.eventTarget.dispatchEvent(
+        new CustomEvent("snapshot", { detail: snapshot2 })
+      );
+  }
+  /**
+   * Registers an event listener.
+   *
+   * @param type - The event type to listen for.
+   * @param listener - The listener to register.
+   * @param options - Listener registration options.
+   */
+  addEventListener(type, listener, options) {
+    this.eventTarget.addEventListener(
+      type,
+      listener,
+      options
+    );
+  }
+  /**
+   * Removes an event listener.
+   *
+   * @param type - The event type to stop listening for.
+   * @param listener - The listener to remove.
+   * @param options - Listener removal options.
+   */
+  removeEventListener(type, listener, options) {
+    this.eventTarget.removeEventListener(
+      type,
+      listener,
+      options
+    );
+  }
+  /**
+   * Returns a detached structured-clone-compatible snapshot of this list.
+   *
+   * Called automatically by `JSON.stringify`.
+   */
+  toJSON() {
+    return __snapshot(this.state);
+  }
+  /**
+   * Attempts to return this list snapshot as a JSON string.
+   *
+   * This can fail when list values are not JSON-compatible.
+   */
+  toString() {
+    return JSON.stringify(this);
+  }
+  /**
+   * Returns the Node.js console inspection representation.
+   */
+  [/* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom")]() {
+    return this.toJSON();
+  }
+  /**
+   * Returns the Deno console inspection representation.
+   */
+  [/* @__PURE__ */ Symbol.for("Deno.customInspect")]() {
+    return this.toJSON();
+  }
+  /**
+   * Iterates over detached copies of the current live values in index order.
+   */
+  *[Symbol.iterator]() {
+    for (let index = 0; index < this.size; index++) {
+      const value = this[index];
+      yield value;
+    }
+  }
+  /**
+   * Calls a function once for each live value copy in index order.
+   *
+   * Callback values are detached copies, so mutating them does not mutate the
+   * list.
+   *
+   * @param callback - Function to call for each value copy.
+   * @param thisArg - Optional `this` value for the callback.
+   */
+  forEach(callback, thisArg) {
+    for (let index = 0; index < this.size; index++) {
+      callback.call(thisArg, this[index], index, this);
+    }
+  }
+};
+
+// node_modules/@sovereignbase/offline-kv-store/dist/index.js
+var KVStoreError = class extends Error {
+  /**
+   * The machine-readable error code.
+   */
+  code;
+  /**
+   * Creates a new `KVStoreError`.
+   *
+   * @param code The machine-readable error code.
+   * @param message A human-readable detail message.
+   */
+  constructor(code, message) {
+    const detail = message ?? code;
+    super(`{@sovereignbase/offline-kv-store} ${detail}`);
+    this.code = code;
+    this.name = "KVStoreError";
+  }
+};
+function isKey(value, label) {
+  if (typeof value !== "string" || value.length <= 0) {
+    throw new KVStoreError(
+      "NAME_WAS_INVALID",
+      `${label} must be a non-empty string`
+    );
+  }
+}
+var DB_NAME = "offline-kv-store";
+var dbRef = null;
+var dbPromise = null;
+var ensureStoreChain = Promise.resolve();
+function cacheDB(db) {
+  db.onversionchange = () => {
+    if (dbRef === db) {
+      dbRef = null;
+      dbPromise = null;
+    }
+    db.close();
+  };
+  dbRef = db;
+  dbPromise = Promise.resolve(db);
+  return db;
+}
+function openDB(version2, onUpgrade) {
+  return new Promise((resolve, reject) => {
+    const request = version2 === void 0 ? indexedDB.open(DB_NAME) : indexedDB.open(DB_NAME, version2);
+    request.onupgradeneeded = () => {
+      onUpgrade?.(request.result);
+    };
+    request.onsuccess = () => resolve(cacheDB(request.result));
+    request.onerror = () => reject(new KVStoreError("DATABASE_OPEN_FAILED", request.error?.message));
+    request.onblocked = (event) => reject(
+      new KVStoreError(
+        "DATABASE_OPEN_BLOCKED",
+        `IndexedDB open blocked for "${DB_NAME}" (oldVersion=${event.oldVersion}, newVersion=${event.newVersion})`
+      )
+    );
+  });
+}
+function closeDB() {
+  if (dbRef) dbRef.close();
+  dbRef = null;
+  dbPromise = null;
+}
+async function resolveDB() {
+  if (dbRef) return dbRef;
+  if (!dbPromise) {
+    dbPromise = openDB().catch((error) => {
+      dbPromise = null;
+      throw error;
+    });
+  }
+  return dbPromise;
+}
+function assertStore(storeName) {
+  const task = ensureStoreChain.then(async () => {
+    const db = await resolveDB();
+    if (db.objectStoreNames.contains(storeName)) return;
+    const nextVersion = db.version + 1;
+    closeDB();
+    await openDB(nextVersion, (upgradeDb) => {
+      if (!upgradeDb.objectStoreNames.contains(storeName)) {
+        upgradeDb.createObjectStore(storeName, { keyPath: "key" });
+      }
+    });
+  });
+  ensureStoreChain = task.catch(() => {
+  });
+  return task;
+}
+var KVStore = class {
+  /**
+   * The namespace backing this store instance.
+   */
+  namespace;
+  /**
+   * A promise that fulfills after the namespace store is available.
+   */
+  ready;
+  /**
+   * Creates a new `KVStore` bound to the given namespace.
+   *
+   * @param namespace The object store name backing the instance.
+   */
+  constructor(namespace) {
+    isKey(namespace, "namespace");
+    this.namespace = namespace;
+    this.ready = assertStore(namespace);
+  }
+  /**
+   * Returns the value associated with the given key.
+   *
+   * @param key The key to look up.
+   * @returns A promise that fulfills with the stored value, if any.
+   */
+  async get(key) {
+    isKey(key, "key");
+    await this.ready;
+    const db = await resolveDB();
+    const row = await new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.namespace, "readonly");
+        const store = tx.objectStore(this.namespace);
+        const request = store.get(key);
+        tx.oncomplete = () => resolve(request.result);
+        tx.onerror = () => reject(
+          new KVStoreError("INDEXED_DB_TRANSACTION_FAILED", tx.error?.message)
+        );
+        tx.onabort = () => reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_ABORTED",
+            tx.error?.message
+          )
+        );
+      } catch (error) {
+        reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_FAILED",
+            error instanceof Error ? error.message : void 0
+          )
+        );
+      }
+    });
+    return row?.value ?? void 0;
+  }
+  /**
+   * Returns whether the given key exists.
+   *
+   * @param key The key to look up.
+   * @returns A promise that fulfills with `true` if the key exists.
+   */
+  async has(key) {
+    isKey(key, "key");
+    await this.ready;
+    const db = await resolveDB();
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.namespace, "readonly");
+        const store = tx.objectStore(this.namespace);
+        const request = typeof store.getKey === "function" ? store.getKey(key) : store.get(key);
+        tx.oncomplete = () => resolve(request.result !== void 0);
+        tx.onerror = () => reject(
+          new KVStoreError("INDEXED_DB_TRANSACTION_FAILED", tx.error?.message)
+        );
+        tx.onabort = () => reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_ABORTED",
+            tx.error?.message
+          )
+        );
+      } catch (error) {
+        reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_FAILED",
+            error instanceof Error ? error.message : void 0
+          )
+        );
+      }
+    });
+  }
+  /**
+   * Stores a value for the given key.
+   *
+   * @param key The key to write.
+   * @param value The value to associate with `key`.
+   * @returns A promise that fulfills when the write completes.
+   */
+  async put(key, value) {
+    isKey(key, "key");
+    await this.ready;
+    const db = await resolveDB();
+    await new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.namespace, "readwrite");
+        const store = tx.objectStore(this.namespace);
+        const row = { key, value };
+        store.put(row);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(
+          new KVStoreError("INDEXED_DB_TRANSACTION_FAILED", tx.error?.message)
+        );
+        tx.onabort = () => reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_ABORTED",
+            tx.error?.message
+          )
+        );
+      } catch (error) {
+        reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_FAILED",
+            error instanceof Error ? error.message : void 0
+          )
+        );
+      }
+    });
+  }
+  /**
+   * Deletes the value associated with the given key.
+   *
+   * @param key The key to delete.
+   * @returns A promise that fulfills when the deletion completes.
+   */
+  async delete(key) {
+    isKey(key, "key");
+    await this.ready;
+    const db = await resolveDB();
+    await new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.namespace, "readwrite");
+        const store = tx.objectStore(this.namespace);
+        store.delete(key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(
+          new KVStoreError("INDEXED_DB_TRANSACTION_FAILED", tx.error?.message)
+        );
+        tx.onabort = () => reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_ABORTED",
+            tx.error?.message
+          )
+        );
+      } catch (error) {
+        reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_FAILED",
+            error instanceof Error ? error.message : void 0
+          )
+        );
+      }
+    });
+  }
+  /**
+   * Deletes every value stored in the namespace.
+   *
+   * @returns A promise that fulfills when the namespace is cleared.
+   */
+  async clear() {
+    await this.ready;
+    const db = await resolveDB();
+    await new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(this.namespace, "readwrite");
+        const store = tx.objectStore(this.namespace);
+        store.clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(
+          new KVStoreError("INDEXED_DB_TRANSACTION_FAILED", tx.error?.message)
+        );
+        tx.onabort = () => reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_ABORTED",
+            tx.error?.message
+          )
+        );
+      } catch (error) {
+        reject(
+          new KVStoreError(
+            "INDEXED_DB_TRANSACTION_FAILED",
+            error instanceof Error ? error.message : void 0
+          )
+        );
+      }
+    });
+  }
+};
+
 // in-browser-testing-libs.js
 var peer = void 0;
+var messagesStore = new KVStore("messages");
 document.getElementById("makeOffer").addEventListener("click", async () => {
   const offer = await P2PConnection.makeOffer();
   QR.display(JSON.stringify(offer));
@@ -4092,11 +5340,11 @@ document.getElementById("makeOffer").addEventListener("click", async () => {
 document.getElementById("acceptOffer").addEventListener("click", async () => {
   const offer = JSON.parse(await QR.scan());
   const { offeror, offeree } = await P2PConnection.acceptOffer(offer);
-  console.log(offeror, offeree);
   peer = new P2PConnection(offeree);
   QR.display(JSON.stringify(offeror));
   await peer.ready();
   peer.onmessage((data) => {
+    if (data === "connected") document.click();
     document.body.append(document.createTextNode(String(data)));
     document.body.append(document.createElement("br"));
   });
@@ -4105,13 +5353,39 @@ document.getElementById("finishOffer").addEventListener("click", async () => {
   const offeror = JSON.parse(await QR.scan());
   peer = new P2PConnection(offeror);
   await peer.ready();
+  document.click();
   peer.onmessage((data) => {
-    document.body.append(document.createTextNode(String(data)));
-    document.body.append(document.createElement("br"));
+    messages.merge(data);
   });
+  peer.send("connected");
 });
-document.getElementById("chat").addEventListener("change", (event) => {
-  peer.send(event.target.value);
+var snapshot = void 0;
+if (await messagesStore.has("messages")) {
+  snapshot = await messagesStore.get("messages");
+}
+var messages = new CRList(snapshot);
+var messagesElement = document.getElementById("messages");
+for (const message of messages) {
+  messagesElement.append(document.createTextNode(String(message)));
+  messagesElement.append(document.createElement("br"));
+}
+document.getElementById("sendMessage").addEventListener("click", (event) => {
+  const msginput = document.getElementById("message-input");
+  peer.send(msginput.value);
+  msginput.value = "";
+});
+messages.addEventListener("delta", ({ detail }) => {
+  peer.send(detail);
+  messages.snapshot();
+});
+messages.addEventListener("change", ({ detail }) => {
+  for (const value of Object.values(detail)) {
+    messagesElement.append(document.createTextNode(String(value)));
+    messagesElement.append(document.createElement("br"));
+  }
+});
+messages.addEventListener("snapshot", ({ detail }) => {
+  messagesStore.put("messages", detail);
 });
 /*! Bundled license information:
 

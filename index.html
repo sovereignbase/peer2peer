@@ -231,6 +231,25 @@
         gap: 1rem;
       }
 
+      .control-card {
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .control-card h5,
+      .control-card p {
+        margin: 0;
+      }
+
+      .control-card p {
+        color: rgba(255, 255, 255, 0.76);
+        line-height: 1.5;
+      }
+
       label {
         display: grid;
         gap: 0.55rem;
@@ -238,6 +257,7 @@
       }
 
       input,
+      button,
       a {
         border-radius: 999px;
       }
@@ -260,6 +280,38 @@
       input[type='number']:focus {
         outline: none;
         border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      button {
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: #fff;
+        color: #000;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .chat {
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      #messages {
+        min-height: 8rem;
+        max-height: 18rem;
+        overflow-y: auto;
+        padding: 0.25rem 0;
+        line-height: 1.6;
+      }
+
+      .composer {
+        display: grid;
+        gap: 0.75rem;
       }
 
       .toggle {
@@ -327,12 +379,12 @@
           padding: 1.75rem;
         }
 
-        .controls {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
         .toggle {
           grid-column: 1 / -1;
+        }
+
+        .composer {
+          grid-template-columns: minmax(0, 1fr) auto;
         }
       }
     </style>
@@ -362,35 +414,36 @@
         </p>
 
         <div class="controls">
-          <h5>Step 1. (Device A)</h5>
-          <p>Displays a RTCPeerConnection offer as a qr code</p>
-          <button id="makeOffer">Make an offer</button>
+          <div class="control-card">
+            <h5>Step 1. (Device A)</h5>
+            <p>Displays a RTCPeerConnection offer as a qr code</p>
+            <button id="makeOffer">Make an offer</button>
+          </div>
 
-          <h5>Step 2. (Device B)</h5>
-          <p>
-            Starts a scanner procesesses the RTCPeerConnection offer and
-            displays an answer as a qr code
-          </p>
-          <button id="acceptOffer">Accept the offer</button>
+          <div class="control-card">
+            <h5>Step 2. (Device B)</h5>
+            <p>
+              Starts a scanner procesesses the RTCPeerConnection offer and
+              displays an answer as a qr code
+            </p>
+            <button id="acceptOffer">Accept the offer</button>
+          </div>
 
-          <h5>Step 3. (Device A)</h5>
-          <p>Scans the QR-Code and resolves the RTCPeerConnection</p>
-          <button id="finishOffer">Finish the offer</button>
-
-          <label for="chat">
-            chat
-            <input id="chat" type="text" placeholder="Write a message..." />
-          </label>
+          <div class="control-card">
+            <h5>Step 3. (Device A)</h5>
+            <p>Scans the QR-Code and resolves the RTCPeerConnection</p>
+            <button id="finishOffer">Finish the offer</button>
+          </div>
         </div>
         <div class="chat">
-          <div id="messages"></div>
-          <div for="message-input">
+          <div id="messages" aria-live="polite"></div>
+          <div class="composer">
             <input
               id="message-input"
               type="text"
               placeholder="Write a message..."
             />
-            <button id="send">send</button>
+            <button id="sendMessage">Send</button>
           </div>
         </div>
       </section>
