@@ -6,13 +6,14 @@
     <title>Peer to Peer Demo</title>
     <meta
       name="description"
-      content="Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs."
+      content="Peer to peer browser messenger demo for @sovereignbase/peer2peer with QR-based device pairing, local message history, and direct realtime messaging."
     />
     <meta
       name="keywords"
-      content="peer2peer, sovereignbase, realtime client, browser sync, BroadcastChannel, WebSocket, local-first, TypeScript, JavaScript"
+      content="peer to peer messenger, p2p chat, QR pairing, WebRTC messenger, sovereignbase peer2peer, browser messaging demo, local message history, realtime chat"
     />
     <meta name="author" content="Jori Lehtinen" />
+    <meta name="theme-color" content="#000000" />
     <meta
       name="robots"
       content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
@@ -34,7 +35,7 @@
     <meta property="og:title" content="Sovereignbase Peer to Peer Demo" />
     <meta
       property="og:description"
-      content="Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs."
+      content="Peer to peer browser messenger demo for @sovereignbase/peer2peer with QR-based device pairing and direct realtime messaging."
     />
     <meta property="og:url" content="https://sovereignbase.dev/peer2peer/" />
     <meta
@@ -46,13 +47,13 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="Sovereignbase Peer to Peer Demo realtime browser demo"
+      content="Sovereignbase peer to peer browser messenger demo"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Sovereignbase Peer to Peer Demo" />
     <meta
       name="twitter:description"
-      content="Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs."
+      content="Peer to peer browser messenger demo for @sovereignbase/peer2peer with QR-based device pairing and direct realtime messaging."
     />
     <meta
       name="twitter:image"
@@ -60,7 +61,7 @@
     />
     <meta
       name="twitter:image:alt"
-      content="Sovereignbase Peer to Peer Demo realtime browser demo"
+      content="Sovereignbase peer to peer browser messenger demo"
     />
     <meta name="twitter:creator" content="@jortsupetterson" />
     <script type="application/ld+json">
@@ -116,17 +117,17 @@
             "name": "@sovereignbase/peer2peer",
             "alternateName": ["peer2peer"],
             "url": "https://sovereignbase.dev/peer2peer/",
-            "description": "Realtime browser client that synchronizes state between tabs.",
+            "description": "Peer to peer browser messenger demo with QR-based device pairing, local message history, and direct realtime messaging.",
             "codeRepository": "https://github.com/sovereignbase/peer2peer",
             "license": "https://www.apache.org/licenses/LICENSE-2.0",
             "programmingLanguage": ["TypeScript", "JavaScript"],
-            "runtimePlatform": ["Web Browser", "Web Worker"],
+            "runtimePlatform": ["Web Browser"],
             "keywords": [
-              "peer2peer",
-              "realtime client",
-              "browser sync",
-              "BroadcastChannel",
-              "WebSocket"
+              "peer to peer messenger",
+              "p2p chat",
+              "QR pairing",
+              "WebRTC messenger",
+              "browser messaging demo"
             ],
             "image": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
             "isAccessibleForFree": true,
@@ -149,7 +150,7 @@
             "@id": "https://sovereignbase.dev/peer2peer/#webpage",
             "url": "https://sovereignbase.dev/peer2peer/",
             "name": "Sovereignbase Peer to Peer Demo",
-            "description": "Browser demo for @sovereignbase/peer2peer, a realtime client that synchronizes state between browser tabs.",
+            "description": "Peer to peer browser messenger demo for @sovereignbase/peer2peer with QR-based device pairing and direct realtime messaging.",
             "inLanguage": "en",
             "isPartOf": {
               "@id": "https://sovereignbase.dev/peer2peer/#website"
@@ -417,23 +418,23 @@
 
         <div class="controls">
           <div class="control-card">
-            <h5>Step 1. (Device A)</h5>
-            <p>Displays a RTCPeerConnection offer as a qr code</p>
+            <h5>Step 1 (Device A)</h5>
+            <p>Displays an RTCPeerConnection offer as a QR code.</p>
             <button id="makeOffer">Make an offer</button>
           </div>
 
           <div class="control-card">
-            <h5>Step 2. (Device B)</h5>
+            <h5>Step 2 (Device B)</h5>
             <p>
-              Starts a scanner procesesses the RTCPeerConnection offer and
-              displays an answer as a qr code
+              Starts a QR scanner, processes the RTCPeerConnection offer, and
+              displays an answer as a QR code.
             </p>
             <button id="acceptOffer">Accept the offer</button>
           </div>
 
           <div class="control-card">
-            <h5>Step 3. (Device A)</h5>
-            <p>Scans the QR-Code and resolves the RTCPeerConnection</p>
+            <h5>Step 3 (Device A)</h5>
+            <p>Scans the QR code and completes the RTCPeerConnection setup.</p>
             <button id="finishOffer">Finish the offer</button>
           </div>
         </div>

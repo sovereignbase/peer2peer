@@ -1,7 +1,7 @@
-import { P2PConnection } from './dist/index.js'
 import { QR } from '@sovereignbase/qr'
 import { CRList } from '@sovereignbase/convergent-replicated-list'
 import { KVStore } from '@sovereignbase/offline-kv-store'
+import { P2PConnection } from './dist/index.js'
 
 let peer = undefined
 
@@ -30,9 +30,11 @@ function renderMessages() {
 }
 
 function closeQrDisplay() {
-  window.dispatchEvent(new PointerEvent('pointerup'))
-  window.dispatchEvent(new MouseEvent('mouseup'))
-  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+  queueMicrotask(() => {
+    window.dispatchEvent(new PointerEvent('pointerup'))
+    window.dispatchEvent(new MouseEvent('mouseup'))
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+  })
 }
 
 function setupPeer(nextPeer) {
