@@ -63,6 +63,7 @@ function resolveConnection(
       case 'snapshot': {
         void window.dispatchEvent(new PointerEvent('pointerup'))
         void messages.merge(detail.payload)
+        void renderMessages(messages)
         break
       }
       case 'delta': {
