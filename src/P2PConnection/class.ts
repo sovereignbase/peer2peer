@@ -123,6 +123,8 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   private displayAudioTrack: RTCRtpSender | undefined
   private displayVideoTrack: RTCRtpSender | undefined
+  private remoteUserMediaStreamId: string | undefined
+  private remoteDisplayMediaStreamId: string | undefined
 
   remoteCameraVideoElement: HTMLVideoElement | undefined
   remoteScreenVideoElement: HTMLVideoElement | undefined
@@ -163,8 +165,36 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
     if (this.peerConnection) {
       void this.peerConnection.addEventListener('track', (ev) => {
-        ev.streams[0]
-        ev.track
+        const stream = ev.streams[0] ?? new MediaStream([ev.track])
+
+        if (
+          !this.remoteUserMediaStreamId ||
+          this.remoteUserMediaStreamId === stream.id
+        ) {
+          this.remoteUserMediaStreamId = stream.id
+
+          if (!this.remoteCameraVideoElement) {
+            this.remoteCameraVideoElement = document.createElement('video')
+          }
+
+          this.remoteCameraVideoElement.srcObject = stream
+          void this.remoteCameraVideoElement.play()
+          return
+        }
+
+        if (
+          !this.remoteDisplayMediaStreamId ||
+          this.remoteDisplayMediaStreamId === stream.id
+        ) {
+          this.remoteDisplayMediaStreamId = stream.id
+
+          if (!this.remoteScreenVideoElement) {
+            this.remoteScreenVideoElement = document.createElement('video')
+          }
+
+          this.remoteScreenVideoElement.srcObject = stream
+          void this.remoteScreenVideoElement.play()
+        }
       })
     }
   }
@@ -192,6 +222,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
   stopSharingMicrophone(): void {
     if (this.userAudioTrack) {
       this.peerConnection.removeTrack(this.userAudioTrack)
+      this.userAudioTrack = undefined
     }
   }
 
@@ -204,24 +235,25 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
     if (!videoTrack) return
 
-    void this.peerConnection.addTrack(
+    this.userVideoTrack = this.peerConnection.addTrack(
       videoTrack,
       P2PConnection.#userMediaStream
     )
 
     if (!P2PConnection.localCameraVideoElement?.srcObject) {
       if (!P2PConnection.localCameraVideoElement) {
-        P2PConnection.localCameraVideoElement = new HTMLVideoElement()
+        P2PConnection.localCameraVideoElement = document.createElement('video')
       }
       const stream = new MediaStream([videoTrack])
       P2PConnection.localCameraVideoElement.srcObject = stream
-      await P2PConnection.localCameraVideoElement.play()
+      void P2PConnection.localCameraVideoElement.play()
     }
   }
 
   stopSharingCamera(): void {
     if (this.userVideoTrack) {
       this.peerConnection.removeTrack(this.userVideoTrack)
+      this.userVideoTrack = undefined
     }
   }
 
@@ -253,20 +285,22 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
     if (!P2PConnection.localScreenVideoElement?.srcObject) {
       if (!P2PConnection.localScreenVideoElement) {
-        P2PConnection.localScreenVideoElement = new HTMLVideoElement()
+        P2PConnection.localScreenVideoElement = document.createElement('video')
       }
       const stream = new MediaStream([videoTrack])
       P2PConnection.localScreenVideoElement.srcObject = stream
-      await P2PConnection.localScreenVideoElement.play()
+      void P2PConnection.localScreenVideoElement.play()
     }
   }
 
   stopSharingScreen(): void {
     if (this.displayVideoTrack) {
       void this.peerConnection.removeTrack(this.displayVideoTrack)
+      this.displayVideoTrack = undefined
     }
     if (this.displayAudioTrack) {
       void this.peerConnection.removeTrack(this.displayAudioTrack)
+      this.displayAudioTrack = undefined
     }
   }
 
