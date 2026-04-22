@@ -515,6 +515,33 @@
           </div>
         </div>
 
+        <div class="controls">
+          <div class="control-card">
+            <h5>Video Call Controls</h5>
+            <p>After pairing, share microphone, camera, or screen.</p>
+            <button id="shareMicrophone">Share microphone</button>
+            <button id="stopSharingMicrophone">Stop microphone</button>
+            <button id="shareCamera">Share camera</button>
+            <button id="stopSharingCamera">Stop camera</button>
+            <button id="shareScreen">Share screen</button>
+            <button id="stopSharingScreen">Stop screen</button>
+          </div>
+
+          <div class="control-card">
+            <h5>Local Camera</h5>
+            <div id="localCameraMount"></div>
+            <h5>Remote Camera</h5>
+            <div id="remoteCameraMount"></div>
+          </div>
+
+          <div class="control-card">
+            <h5>Local Screen</h5>
+            <div id="localScreenMount"></div>
+            <h5>Remote Screen</h5>
+            <div id="remoteScreenMount"></div>
+          </div>
+        </div>
+
         <pre>
           <code class="language-typescript">
 import { QR } from '@sovereignbase/qr'

@@ -132,37 +132,35 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   constructor(contract: Contract) {
     this.eventTarget = new EventTarget()
+    let channelPromise: Promise<RTCDataChannel>
 
     if (contract.role === 'offeror') {
-      const pending = P2PConnection.#pendingOffers.get(contract.offerId)
-
-      if (!pending) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
-
-      this.channel = pending.channel
-      this.peerConnection = pending.peerConnection
-      this.channelPromise = Promise.resolve(pending.channel)
+      const offer = P2PConnection.#pendingOffers.get(contract.offerId)
+      if (!offer) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
+      this.peerConnection = offer.peerConnection
+      this.channel = offer.channel
+      channelPromise = Promise.resolve(offer.channel)
       P2PConnection.#pendingOffers.delete(contract.offerId)
-
       void this.peerConnection.setRemoteDescription(contract.answer)
     } else {
-      const accepted = P2PConnection.#acceptedOffers.get(contract.offerId)
-
-      if (!accepted) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
-
-      this.peerConnection = accepted.peerConnection
-      this.channelPromise = accepted.channelPromise.then((channel) => {
-        this.channel = channel
-        return channel
-      })
+      const offer = P2PConnection.#acceptedOffers.get(contract.offerId)
+      if (!offer) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
+      this.peerConnection = offer.peerConnection
+      channelPromise = offer.channelPromise
       P2PConnection.#acceptedOffers.delete(contract.offerId)
     }
 
-    if (this.channel)
+    this.channelPromise = channelPromise.then((channel) => {
+      this.channel = channel
+
       void this.channel.addEventListener('message', async ({ data }) => {
         this.eventTarget.dispatchEvent(
           new CustomEvent<T>('message', { detail: decode(data) as T })
         )
       })
+
+      return channel
+    })
 
     if (this.peerConnection) {
       void this.peerConnection.addEventListener('track', (ev) => {

@@ -15,6 +15,12 @@ type ChatMessage = {
 type PeerMessage =
   | { kind: 'snapshot'; payload: CRListSnapshot<ChatMessage> }
   | { kind: 'delta'; payload: CRListDelta<ChatMessage> }
+  | { kind: 'camera-shared' }
+  | { kind: 'microphone-shared' }
+  | { kind: 'screen-shared' }
+  | { kind: 'camera-muted' }
+  | { kind: 'microphone-muted' }
+  | { kind: 'screen-muted' }
 
 /** Pointers */
 let peer: P2PConnection<PeerMessage> | undefined
@@ -35,6 +41,20 @@ const messagesElement = document.getElementById('messages')
 const messageInput = document.getElementById('message-input')
 const sendMessageButton = document.getElementById('sendMessage')
 
+const shareMicrophoneButton = document.getElementById('shareMicrophone')
+const stopSharingMicrophoneButton = document.getElementById(
+  'stopSharingMicrophone'
+)
+const shareCameraButton = document.getElementById('shareCamera')
+const stopSharingCameraButton = document.getElementById('stopSharingCamera')
+const shareScreenButton = document.getElementById('shareScreen')
+const stopSharingScreenButton = document.getElementById('stopSharingScreen')
+
+const localCameraMount = document.getElementById('localCameraMount')
+const remoteCameraMount = document.getElementById('remoteCameraMount')
+const localScreenMount = document.getElementById('localScreenMount')
+const remoteScreenMount = document.getElementById('remoteScreenMount')
+
 /** Helpers */
 function appendMessage(message: ChatMessage): void {
   if (!messagesElement) return
@@ -53,7 +73,7 @@ function renderMessages(messages: CRList<ChatMessage>): void {
   for (const message of messages) void appendMessage(message)
 }
 
-function resolveConnection(
+function setupWire(
   connection: P2PConnection<PeerMessage>,
   messages: CRList<ChatMessage>
 ): void {
@@ -69,6 +89,16 @@ function resolveConnection(
       case 'delta': {
         void messages.merge(detail.payload)
         break
+      }
+      case 'camera-shared': {
+        if (remoteCameraMount && peer?.remoteCameraVideoElement) {
+          void remoteCameraMount.append(peer.remoteCameraVideoElement)
+        }
+      }
+      case 'screen-shared': {
+        if (remoteScreenMount && peer?.remoteScreenVideoElement) {
+          void remoteScreenMount.append(peer.remoteScreenVideoElement)
+        }
       }
     }
   })
@@ -97,7 +127,7 @@ if (acceptOfferButton instanceof HTMLButtonElement) {
     const offer = JSON.parse(await QR.restoreEncoding(signal)) as Offer
     const { offeror, offeree } = await P2PConnection.acceptOffer(offer, [])
 
-    void resolveConnection(new P2PConnection(offeree), messages)
+    void setupWire(new P2PConnection(offeree), messages)
     const optimized = await QR.optimizeEncoding(JSON.stringify(offeror))
     void QR.display(optimized)
 
@@ -113,7 +143,7 @@ if (finishOfferButton instanceof HTMLButtonElement) {
     const signal = await QR.scan()
     const offeror = JSON.parse(await QR.restoreEncoding(signal)) as OfferorCopy
 
-    void resolveConnection(new P2PConnection(offeror), messages)
+    void setupWire(new P2PConnection(offeror), messages)
 
     if (!peer) return
 
@@ -156,3 +186,57 @@ void messages.addEventListener('snapshot', ({ detail }) => {
 })
 
 void renderMessages(messages)
+
+if (shareMicrophoneButton instanceof HTMLButtonElement) {
+  void shareMicrophoneButton.addEventListener('click', async () => {
+    if (!peer) return
+    void (await peer.shareMicrophone())
+    void peer.sendMessage({ kind: 'microphone-shared' })
+  })
+}
+
+if (stopSharingMicrophoneButton instanceof HTMLButtonElement) {
+  void stopSharingMicrophoneButton.addEventListener('click', () => {
+    if (!peer) return
+    void peer.stopSharingMicrophone()
+    void peer.sendMessage({ kind: 'microphone-muted' })
+  })
+}
+
+if (shareCameraButton instanceof HTMLButtonElement) {
+  void shareCameraButton.addEventListener('click', async () => {
+    if (!peer) return
+    await peer.shareCamera()
+    if (localCameraMount && P2PConnection.localCameraVideoElement) {
+      void localCameraMount.append(P2PConnection.localCameraVideoElement)
+    }
+    void peer.sendMessage({ kind: 'camera-shared' })
+  })
+}
+
+if (stopSharingCameraButton instanceof HTMLButtonElement) {
+  void stopSharingCameraButton.addEventListener('click', () => {
+    if (!peer) return
+    void peer.stopSharingCamera()
+    void peer.sendMessage({ kind: 'camera-muted' })
+  })
+}
+
+if (shareScreenButton instanceof HTMLButtonElement) {
+  void shareScreenButton.addEventListener('click', async () => {
+    if (!peer) return
+    void (await peer.shareScreen())
+    if (localScreenMount && P2PConnection.localScreenVideoElement) {
+      void localScreenMount.append(P2PConnection.localScreenVideoElement)
+    }
+    void peer.sendMessage({ kind: 'screen-shared' })
+  })
+}
+
+if (stopSharingScreenButton instanceof HTMLButtonElement) {
+  void stopSharingScreenButton.addEventListener('click', () => {
+    if (!peer) return
+    void peer.stopSharingScreen()
+    void peer.sendMessage({ kind: 'screen-muted' })
+  })
+}
