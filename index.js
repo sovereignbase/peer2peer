@@ -5423,25 +5423,6 @@ function decode(buffer, options) {
 }
 
 // dist/index.js
-var iceServers = [
-  {
-    urls: [
-      "stun:stun1.l.google.com:19302",
-      "stun:stun2.l.google.com:19302",
-      "stun:stun3.l.google.com:19302",
-      "stun:stun4.l.google.com:19302"
-    ]
-  }
-];
-function serializeDescription(description) {
-  if (description.type !== "offer" && description.type !== "answer")
-    throw new TypeError("BAD_DESCRIPTION_TYPE");
-  if (!description.sdp) throw new TypeError("MISSING_SDP");
-  return {
-    type: description.type,
-    sdp: description.sdp
-  };
-}
 async function waitForIceComplete(peerConnection) {
   if (peerConnection.iceGatheringState === "complete") return;
   await new Promise((resolve) => {
@@ -5466,6 +5447,40 @@ async function waitForIceComplete(peerConnection) {
     peerConnection.addEventListener("icecandidate", onIceCandidate);
   });
 }
+var P2PConnectionError = class extends Error {
+  code;
+  constructor(code, message) {
+    const detail = message ?? code;
+    super(`{@sovereignbase/peer2peer} ${detail}`);
+    this.code = code;
+    this.name = "P2PConnectionError";
+  }
+};
+function waitForChannelOpen(channel) {
+  if (channel.readyState === "open") return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      channel.removeEventListener("open", onOpen);
+      channel.removeEventListener("close", onClose);
+      channel.removeEventListener("error", onError);
+    };
+    const onOpen = () => {
+      cleanup();
+      resolve();
+    };
+    const onClose = () => {
+      cleanup();
+      reject(new P2PConnectionError("CHANNEL_CLOSED"));
+    };
+    const onError = () => {
+      cleanup();
+      reject(new P2PConnectionError("CHANNEL_ERROR"));
+    };
+    channel.addEventListener("open", onOpen);
+    channel.addEventListener("close", onClose);
+    channel.addEventListener("error", onError);
+  });
+}
 function waitForIncomingDataChannel(peerConnection) {
   return new Promise((resolve, reject) => {
     const cleanup = () => {
@@ -5482,7 +5497,7 @@ function waitForIncomingDataChannel(peerConnection) {
     const onConnectionStateChange = () => {
       if (peerConnection.connectionState === "failed" || peerConnection.connectionState === "closed") {
         cleanup();
-        reject(new TypeError("CHANNEL_NOT_AVAILABLE"));
+        reject(new P2PConnectionError("CHANNEL_NOT_AVAILABLE"));
       }
     };
     peerConnection.addEventListener("datachannel", onDataChannel);
@@ -5492,57 +5507,42 @@ function waitForIncomingDataChannel(peerConnection) {
     );
   });
 }
-function waitForChannelOpen(channel) {
-  if (channel.readyState === "open") return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const cleanup = () => {
-      channel.removeEventListener("open", onOpen);
-      channel.removeEventListener("close", onClose);
-      channel.removeEventListener("error", onError);
-    };
-    const onOpen = () => {
-      cleanup();
-      resolve();
-    };
-    const onClose = () => {
-      cleanup();
-      reject(new TypeError("CHANNEL_CLOSED"));
-    };
-    const onError = () => {
-      cleanup();
-      reject(new TypeError("CHANNEL_ERROR"));
-    };
-    channel.addEventListener("open", onOpen);
-    channel.addEventListener("close", onClose);
-    channel.addEventListener("error", onError);
-  });
-}
 var P2PConnection = class _P2PConnection {
-  static #pendingOfferorSide = /* @__PURE__ */ new Map();
-  static #acceptedOffereeSide = /* @__PURE__ */ new Map();
-  static async makeOffer() {
+  static #defaultIceServer = {
+    urls: [
+      "stun:stun1.l.google.com:19302",
+      "stun:stun2.l.google.com:19302",
+      "stun:stun3.l.google.com:19302",
+      "stun:stun4.l.google.com:19302"
+    ]
+  };
+  //offeror
+  static #pendingOffers = /* @__PURE__ */ new Map();
+  static async makeOffer(additionalIceServers) {
     const peerConnection = new RTCPeerConnection({
-      iceServers,
+      iceServers: [_P2PConnection.#defaultIceServer, ...additionalIceServers],
       iceTransportPolicy: "all"
     });
     const channel = peerConnection.createDataChannel("data");
     const offerId = crypto.randomUUID();
-    _P2PConnection.#pendingOfferorSide.set(offerId, {
+    _P2PConnection.#pendingOffers.set(offerId, {
       peerConnection,
       channel
     });
     await peerConnection.setLocalDescription(await peerConnection.createOffer());
     await waitForIceComplete(peerConnection);
     if (!peerConnection.localDescription)
-      throw new TypeError("MISSING_LOCAL_DESCRIPTION");
+      throw new P2PConnectionError("MISSING_LOCAL_DESCRIPTION");
     return {
       offerId,
-      description: serializeDescription(peerConnection.localDescription)
+      description: peerConnection.localDescription
     };
   }
-  static async acceptOffer(offer) {
+  //offeree
+  static #acceptedOffers = /* @__PURE__ */ new Map();
+  static async acceptOffer(offer, additionalIceServers) {
     const peerConnection = new RTCPeerConnection({
-      iceServers,
+      iceServers: [_P2PConnection.#defaultIceServer, ...additionalIceServers],
       iceTransportPolicy: "all"
     });
     const channelPromise = waitForIncomingDataChannel(peerConnection);
@@ -5552,323 +5552,202 @@ var P2PConnection = class _P2PConnection {
     );
     await waitForIceComplete(peerConnection);
     if (!peerConnection.localDescription)
-      throw new TypeError("MISSING_LOCAL_DESCRIPTION");
-    const answer = serializeDescription(peerConnection.localDescription);
-    _P2PConnection.#acceptedOffereeSide.set(offer.offerId, {
+      throw new P2PConnectionError("MISSING_LOCAL_DESCRIPTION");
+    const answer = peerConnection.localDescription;
+    _P2PConnection.#acceptedOffers.set(offer.offerId, {
       peerConnection,
       channelPromise
     });
     return {
       offeror: {
         offerId: offer.offerId,
-        side: "offeror",
+        role: "offeror",
         answer
       },
       offeree: {
         offerId: offer.offerId,
-        side: "offeree"
+        role: "offeree"
       }
     };
   }
-  #peerConnection;
-  #channelPromise;
-  #channel;
-  constructor(init) {
-    if (init.side === "offeror") {
-      const pending = _P2PConnection.#pendingOfferorSide.get(init.offerId);
-      if (!pending) throw new TypeError("UNKNOWN_PEER_INIT");
-      this.#peerConnection = pending.peerConnection;
-      this.#channel = pending.channel;
-      this.#channelPromise = Promise.resolve(pending.channel);
-      _P2PConnection.#pendingOfferorSide.delete(init.offerId);
-      void this.#peerConnection.setRemoteDescription(init.answer);
+  eventTarget;
+  peerConnection;
+  channelPromise;
+  channel;
+  constructor(contract) {
+    this.eventTarget = new EventTarget();
+    if (contract.role === "offeror") {
+      const pending = _P2PConnection.#pendingOffers.get(contract.offerId);
+      if (!pending) throw new P2PConnectionError("UNKNOWN_PEER_CONTRACT");
+      this.peerConnection = pending.peerConnection;
+      this.channel = pending.channel;
+      this.channelPromise = Promise.resolve(pending.channel);
+      _P2PConnection.#pendingOffers.delete(contract.offerId);
+      void this.peerConnection.setRemoteDescription(contract.answer);
+      void this.channel.addEventListener("message", async ({ data }) => {
+        this.eventTarget.dispatchEvent(
+          new CustomEvent("message", { detail: decode(data) })
+        );
+      });
       return;
     }
-    const accepted = _P2PConnection.#acceptedOffereeSide.get(init.offerId);
-    if (!accepted) throw new TypeError("UNKNOWN_PEER_INIT");
-    this.#peerConnection = accepted.peerConnection;
-    this.#channelPromise = accepted.channelPromise.then((channel) => {
-      this.#channel = channel;
+    const accepted = _P2PConnection.#acceptedOffers.get(contract.offerId);
+    if (!accepted) throw new P2PConnectionError("UNKNOWN_PEER_CONTRACT");
+    this.peerConnection = accepted.peerConnection;
+    this.channelPromise = accepted.channelPromise.then((channel) => {
+      this.channel = channel;
+      void this.channel.addEventListener("message", async ({ data }) => {
+        this.eventTarget.dispatchEvent(
+          new CustomEvent("message", { detail: decode(data) })
+        );
+      });
       return channel;
     });
-    _P2PConnection.#acceptedOffereeSide.delete(init.offerId);
+    _P2PConnection.#acceptedOffers.delete(contract.offerId);
   }
   async ready() {
-    const channel = await this.#channelPromise;
+    const channel = await this.channelPromise;
     await waitForChannelOpen(channel);
   }
-  async channel() {
-    return await this.#channelPromise;
+  sendMessage(message) {
+    if (!this.channel) throw new P2PConnectionError("CONNECTION_NOT_READY");
+    this.channel.send(encode2(message));
   }
-  sendMessage(data) {
-    if (!this.#channel) throw new TypeError("CALL_READY_FIRST");
-    this.#channel.send(encode2(data));
+  closeConnection() {
+    if (this.channel) this.channel.close();
+    this.peerConnection.close();
   }
-  onmessage(listener) {
-    void this.#channelPromise.then((channel) => {
-      channel.addEventListener("message", async (event) => {
-        let data = event.data;
-        if (data instanceof Blob) {
-          data = new Uint8Array(await data.arrayBuffer());
-        } else if (data instanceof ArrayBuffer) {
-          data = new Uint8Array(data);
-        }
-        if (data instanceof Uint8Array) {
-          listener(decode(data), event);
-          return;
-        }
-        listener(data, event);
-      });
-    });
+  /**
+   * Registers an event listener.
+   *
+   * @param type The event type to listen for.
+   * @param listener The listener to register.
+   * @param options Listener registration options.
+   */
+  addEventListener(type, listener, options) {
+    this.eventTarget.addEventListener(
+      type,
+      listener,
+      options
+    );
   }
-  close() {
-    this.#channel?.close();
-    this.#peerConnection.close();
+  /**
+   * Removes an event listener.
+   *
+   * @param type The event type to stop listening for.
+   * @param listener The listener to remove.
+   * @param options Listener removal options.
+   */
+  removeEventListener(type, listener, options) {
+    this.eventTarget.removeEventListener(
+      type,
+      listener,
+      options
+    );
   }
 };
 
-// in-browser-testing-libs.js
-var peer = void 0;
+// in-browser-testing-libs.ts
+var peer;
+var profileStore = new KVStore("profile");
 var messagesStore = new KVStore("messages");
-var messagesElement = document.getElementById("messages");
-var nameInput = document.getElementById("name");
-var controlsElement = document.getElementById("controls");
-var qrModeButton = document.getElementById("qrMode");
-var copyPasteModeButton = document.getElementById("copyPasteMode");
-var profile = await messagesStore.get("profile") ?? {
-  name: "",
-  demoMode: "qr"
-};
-var demoMode = profile.demoMode ?? "qr";
-nameInput.value = profile.name ?? "";
-function appendMessage(message) {
-  const value = message && typeof message === "object" ? `${message.name || "Anonymous"}: ${message.text || ""}` : String(message);
-  messagesElement.append(document.createTextNode(value));
-  messagesElement.append(document.createElement("br"));
-}
-function renderMessages() {
-  messagesElement.textContent = "";
-  for (const message of messages) {
-    appendMessage(message);
-  }
-}
-function closeQrDisplay() {
-  if (demoMode !== "qr") return;
-  queueMicrotask(() => {
-    window.dispatchEvent(new PointerEvent("pointerup"));
-    window.dispatchEvent(new MouseEvent("mouseup"));
-    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
-  });
-}
-function setDemoMode(nextMode) {
-  demoMode = nextMode;
-  profile = { ...profile, demoMode: nextMode };
-  messagesStore.put("profile", profile);
-  qrModeButton.setAttribute("aria-pressed", String(nextMode === "qr"));
-  copyPasteModeButton.setAttribute("aria-pressed", String(nextMode === "copy"));
-  renderControls();
-}
-function renderControls() {
-  if (demoMode === "qr") {
-    controlsElement.innerHTML = `
-      <div class="control-card">
-        <h5>Step 1 (Device A)</h5>
-        <p>Displays an RTCPeerConnection offer as a QR code.</p>
-        <button id="makeOffer">Make an offer</button>
-      </div>
-
-      <div class="control-card">
-        <h5>Step 2 (Device B)</h5>
-        <p>Starts a QR scanner, processes the RTCPeerConnection offer, and displays an answer as a QR code.</p>
-        <button id="acceptOffer">Accept the offer</button>
-      </div>
-
-      <div class="control-card">
-        <h5>Step 3 (Device A)</h5>
-        <p>Scans the QR code and completes the RTCPeerConnection setup.</p>
-        <button id="finishOffer">Finish the offer</button>
-      </div>
-    `;
-  } else {
-    controlsElement.innerHTML = `
-      <div class="control-card">
-        <h5>Step 1 (Device A)</h5>
-        <p>Create an RTCPeerConnection offer and copy it to any channel you want.</p>
-        <button id="makeOffer">Make an offer</button>
-        <textarea id="offerOutput" placeholder="Offer appears here." readonly></textarea>
-        <div class="field-actions">
-          <button id="copyOffer" class="icon-button" type="button" aria-label="Copy offer">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z" />
-            </svg>
-            Copy
-          </button>
-        </div>
-      </div>
-
-      <div class="control-card">
-        <h5>Step 2 (Device B)</h5>
-        <p>Paste the offer, process it, and copy the answer back to device A.</p>
-        <textarea id="offerInput" placeholder="Paste offer here."></textarea>
-        <div class="field-actions">
-          <button id="pasteOffer" class="icon-button" type="button" aria-label="Paste offer">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M19 4h-3.18C15.4 2.84 14.3 2 13 2h-2c-1.3 0-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V6h2v3h10V6h2v5h2V6a2 2 0 0 0-2-2Zm-8-1h2a1 1 0 0 1 1 1h-4a1 1 0 0 1 1-1Zm6 4H7V6h10v1Zm3 6v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z" />
-            </svg>
-            Paste
-          </button>
-        </div>
-        <button id="acceptOffer">Accept the offer</button>
-        <textarea id="answerOutput" placeholder="Answer appears here." readonly></textarea>
-        <div class="field-actions">
-          <button id="copyAnswer" class="icon-button" type="button" aria-label="Copy answer">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H10V7h9v14Z" />
-            </svg>
-            Copy
-          </button>
-        </div>
-      </div>
-
-      <div class="control-card">
-        <h5>Step 3 (Device A)</h5>
-        <p>Paste the answer and complete the RTCPeerConnection setup.</p>
-        <textarea id="answerInput" placeholder="Paste answer here."></textarea>
-        <div class="field-actions">
-          <button id="pasteAnswer" class="icon-button" type="button" aria-label="Paste answer">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M19 4h-3.18C15.4 2.84 14.3 2 13 2h-2c-1.3 0-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V6h2v3h10V6h2v5h2V6a2 2 0 0 0-2-2Zm-8-1h2a1 1 0 0 1 1 1h-4a1 1 0 0 1 1-1Zm6 4H7V6h10v1Zm3 6v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z" />
-            </svg>
-            Paste
-          </button>
-        </div>
-        <button id="finishOffer">Finish the offer</button>
-      </div>
-    `;
-  }
-  bindControlEvents();
-}
-function readHandshakeValue(id) {
-  return document.getElementById(id).value;
-}
-async function readSignal(kind) {
-  const payload = demoMode === "qr" ? await QR.scan() : readHandshakeValue(kind === "offer" ? "offerInput" : "answerInput");
-  return JSON.parse(await QR.restoreEncoding(payload));
-}
-async function writeSignal(kind, value) {
-  const optimized = await QR.optimizeEncoding(JSON.stringify(value));
-  if (demoMode === "qr") {
-    QR.display(optimized);
-    return;
-  }
-  document.getElementById(
-    kind === "offer" ? "offerOutput" : "answerOutput"
-  ).value = optimized;
-}
-async function copyField(id) {
-  const field = document.getElementById(id);
-  if (!field?.value) return;
-  await navigator.clipboard.writeText(field.value);
-}
-async function pasteField(id) {
-  const field = document.getElementById(id);
-  if (!field) return;
-  field.value = await navigator.clipboard.readText();
-}
-function setupPeer(nextPeer) {
-  peer = nextPeer;
-  peer.onmessage((data) => {
-    if (data === "connected") {
-      closeQrDisplay();
-      return;
-    }
-    if (data && typeof data === "object" && data.type === "snapshot") {
-      messages.merge(data.payload);
-      renderMessages();
-      return;
-    }
-    if (data && typeof data === "object" && data.type === "delta") {
-      messages.merge(data.payload);
-      return;
-    }
-    messages.merge(data);
-  });
-}
-function bindControlEvents() {
-  document.getElementById("makeOffer").onclick = async () => {
-    const offer = await P2PConnection.makeOffer();
-    await writeSignal("offer", offer);
-  };
-  document.getElementById("acceptOffer").onclick = async () => {
-    const offer = await readSignal("offer");
-    const { offeror, offeree } = await P2PConnection.acceptOffer(offer);
-    setupPeer(new P2PConnection(offeree));
-    await writeSignal("answer", offeror);
-    await peer.ready();
-    peer.sendMessage({ type: "snapshot", payload: messages.toJSON() });
-  };
-  document.getElementById("finishOffer").onclick = async () => {
-    const offeror = await readSignal("answer");
-    setupPeer(new P2PConnection(offeror));
-    await peer.ready();
-    closeQrDisplay();
-    peer.sendMessage("connected");
-    peer.sendMessage({ type: "snapshot", payload: messages.toJSON() });
-  };
-  if (demoMode === "copy") {
-    document.getElementById("copyOffer").onclick = async () => {
-      await copyField("offerOutput");
-    };
-    document.getElementById("pasteOffer").onclick = async () => {
-      await pasteField("offerInput");
-    };
-    document.getElementById("copyAnswer").onclick = async () => {
-      await copyField("answerOutput");
-    };
-    document.getElementById("pasteAnswer").onclick = async () => {
-      await pasteField("answerInput");
-    };
-  }
-}
-var snapshot = void 0;
-if (await messagesStore.has("messages")) {
-  snapshot = await messagesStore.get("messages");
-}
+var snapshot = await messagesStore.get("messages") ?? void 0;
 var messages = new CRList(snapshot);
-renderMessages();
-document.getElementById("sendMessage").addEventListener("click", (event) => {
-  const msginput = document.getElementById("message-input");
-  const text = msginput.value.trim();
-  if (!text) return;
-  messages.append({
-    name: nameInput.value.trim() || "Anonymous",
-    text
+var nameInput = document.getElementById("name");
+var makeOfferButton = document.getElementById("makeOffer");
+var acceptOfferButton = document.getElementById("acceptOffer");
+var finishOfferButton = document.getElementById("finishOffer");
+var messagesElement = document.getElementById("messages");
+var messageInput = document.getElementById("message-input");
+var sendMessageButton = document.getElementById("sendMessage");
+function appendMessage(message) {
+  if (!messagesElement) return;
+  void messagesElement.append(
+    document.createTextNode(`${message.name}: ${message.text}`)
+  );
+  void messagesElement.append(document.createElement("br"));
+}
+function renderMessages(messages2) {
+  if (!messagesElement) return;
+  messagesElement.textContent = "";
+  for (const message of messages2) void appendMessage(message);
+}
+function resolveConnection(connection, messages2) {
+  peer = connection;
+  void connection.addEventListener("message", ({ detail }) => {
+    switch (detail.kind) {
+      case "snapshot": {
+        void window.dispatchEvent(new PointerEvent("pointerup"));
+        void messages2.merge(detail.payload);
+        break;
+      }
+      case "delta": {
+        void messages2.merge(detail.payload);
+        break;
+      }
+    }
   });
-  msginput.value = "";
+}
+if (nameInput instanceof HTMLInputElement) {
+  nameInput.value = await profileStore.get("name") ?? "";
+  void nameInput.addEventListener("change", () => {
+    void profileStore.put("name", nameInput.value.trim());
+  });
+}
+if (makeOfferButton instanceof HTMLButtonElement) {
+  void makeOfferButton.addEventListener("click", async () => {
+    const offer = await P2PConnection.makeOffer([]);
+    const optimized = await QR.optimizeEncoding(JSON.stringify(offer));
+    void QR.display(optimized);
+  });
+}
+if (acceptOfferButton instanceof HTMLButtonElement) {
+  void acceptOfferButton.addEventListener("click", async () => {
+    const signal = await QR.scan();
+    const offer = JSON.parse(await QR.restoreEncoding(signal));
+    const { offeror, offeree } = await P2PConnection.acceptOffer(offer, []);
+    void resolveConnection(new P2PConnection(offeree), messages);
+    const optimized = await QR.optimizeEncoding(JSON.stringify(offeror));
+    void QR.display(optimized);
+    if (!peer) return;
+    void await peer.ready();
+    void peer.sendMessage({ kind: "snapshot", payload: messages.toJSON() });
+  });
+}
+if (finishOfferButton instanceof HTMLButtonElement) {
+  void finishOfferButton.addEventListener("click", async () => {
+    const signal = await QR.scan();
+    const offeror = JSON.parse(await QR.restoreEncoding(signal));
+    void resolveConnection(new P2PConnection(offeror), messages);
+    if (!peer) return;
+    void await peer.ready();
+    void peer.sendMessage({ kind: "snapshot", payload: messages.toJSON() });
+  });
+}
+if (sendMessageButton instanceof HTMLButtonElement && messageInput instanceof HTMLInputElement && nameInput instanceof HTMLInputElement) {
+  void sendMessageButton.addEventListener("click", () => {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    void messages.append({
+      name: nameInput.value.trim() || "Anonymous",
+      text
+    });
+    messageInput.value = "";
+  });
+}
+void messages.addEventListener("delta", ({ detail }) => {
+  if (peer) void peer.sendMessage({ kind: "delta", payload: detail });
+  void messages.snapshot();
 });
-messages.addEventListener("delta", ({ detail }) => {
-  if (peer) peer.sendMessage({ type: "delta", payload: detail });
-  messages.snapshot();
-});
-messages.addEventListener("change", ({ detail }) => {
+void messages.addEventListener("change", ({ detail }) => {
   for (const value of Object.values(detail)) {
-    appendMessage(value);
+    if (value) void appendMessage(value);
   }
 });
-messages.addEventListener("snapshot", ({ detail }) => {
-  messagesStore.put("messages", detail);
+void messages.addEventListener("snapshot", ({ detail }) => {
+  void messagesStore.put("messages", detail);
 });
-nameInput.addEventListener("change", () => {
-  profile = { ...profile, name: nameInput.value.trim() };
-  messagesStore.put("profile", profile);
-});
-qrModeButton.addEventListener("click", () => {
-  setDemoMode("qr");
-});
-copyPasteModeButton.addEventListener("click", () => {
-  setDemoMode("copy");
-});
-setDemoMode(demoMode);
+void renderMessages(messages);
 /*! Bundled license information:
 
 qr/index.js:

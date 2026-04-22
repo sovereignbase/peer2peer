@@ -115,16 +115,24 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   constructor(contract: Contract) {
     this.eventTarget = new EventTarget()
+
     if (contract.role === 'offeror') {
       const pending = P2PConnection.#pendingOffers.get(contract.offerId)
 
       if (!pending) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
 
-      this.peerConnection = pending.peerConnection
       this.channel = pending.channel
+      this.peerConnection = pending.peerConnection
       this.channelPromise = Promise.resolve(pending.channel)
       P2PConnection.#pendingOffers.delete(contract.offerId)
+
       void this.peerConnection.setRemoteDescription(contract.answer)
+
+      void this.channel.addEventListener('message', async ({ data }) => {
+        this.eventTarget.dispatchEvent(
+          new CustomEvent<T>('message', { detail: decode(data) as T })
+        )
+      })
       return
     }
 
@@ -135,6 +143,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
     this.peerConnection = accepted.peerConnection
     this.channelPromise = accepted.channelPromise.then((channel) => {
       this.channel = channel
+
       void this.channel.addEventListener('message', async ({ data }) => {
         this.eventTarget.dispatchEvent(
           new CustomEvent<T>('message', { detail: decode(data) as T })
