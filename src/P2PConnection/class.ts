@@ -19,8 +19,8 @@ import type {
 export class P2PConnection<T extends Record<string, unknown>> {
   static #userMediaStream: MediaStream | undefined
   static #displayMediaStream: MediaStream | undefined
-  static #localCameraVideoElement: HTMLVideoElement | undefined
-  static #localScreenVideoElement: HTMLVideoElement | undefined
+  static localCameraVideoElement: HTMLVideoElement | undefined
+  static localScreenVideoElement: HTMLVideoElement | undefined
 
   static #defaultIceServer: RTCIceServer = {
     urls: [
@@ -118,8 +118,14 @@ export class P2PConnection<T extends Record<string, unknown>> {
   private readonly channelPromise: Promise<RTCDataChannel>
   private channel?: RTCDataChannel
 
-  private remoteCameraVideoElement: HTMLVideoElement | undefined
-  private remoteScreenVideoElement: HTMLVideoElement | undefined
+  private userAudioTrack: RTCRtpSender | undefined
+  private userVideoTrack: RTCRtpSender | undefined
+
+  private displayAudioTrack: RTCRtpSender | undefined
+  private displayVideoTrack: RTCRtpSender | undefined
+
+  remoteCameraVideoElement: HTMLVideoElement | undefined
+  remoteScreenVideoElement: HTMLVideoElement | undefined
 
   constructor(contract: Contract) {
     this.eventTarget = new EventTarget()
@@ -178,13 +184,17 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
     if (!audioTrack) return
 
-    void this.peerConnection.addTrack(
+    this.userAudioTrack = this.peerConnection.addTrack(
       audioTrack,
       P2PConnection.#userMediaStream
     )
   }
 
-  stopSharingMicrophone(): void {}
+  stopSharingMicrophone(): void {
+    if (this.userAudioTrack) {
+      this.peerConnection.removeTrack(this.userAudioTrack)
+    }
+  }
 
   async shareCamera(): Promise<void> {
     if (!P2PConnection.#userMediaStream) {
@@ -199,9 +209,22 @@ export class P2PConnection<T extends Record<string, unknown>> {
       videoTrack,
       P2PConnection.#userMediaStream
     )
+
+    if (!P2PConnection.localCameraVideoElement?.srcObject) {
+      if (!P2PConnection.localCameraVideoElement) {
+        P2PConnection.localCameraVideoElement = new HTMLVideoElement()
+      }
+      const stream = new MediaStream([videoTrack])
+      P2PConnection.localCameraVideoElement.srcObject = stream
+      await P2PConnection.localCameraVideoElement.play()
+    }
   }
 
-  stopSharingCamera(): void {}
+  stopSharingCamera(): void {
+    if (this.userVideoTrack) {
+      this.peerConnection.removeTrack(this.userVideoTrack)
+    }
+  }
 
   async shareScreen(): Promise<void> {
     if (!P2PConnection.#displayMediaStream) {
@@ -213,24 +236,40 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
     const videoTrack = P2PConnection.#displayMediaStream.getVideoTracks()[0]
 
-    if (!videoTrack) return
-
-    void this.peerConnection.addTrack(
-      videoTrack,
-      P2PConnection.#displayMediaStream
-    )
+    if (videoTrack) {
+      this.displayVideoTrack = this.peerConnection.addTrack(
+        videoTrack,
+        P2PConnection.#displayMediaStream
+      )
+    }
 
     const audioTrack = P2PConnection.#displayMediaStream.getAudioTracks()[0]
 
-    if (!audioTrack) return
+    if (audioTrack) {
+      this.displayAudioTrack = this.peerConnection.addTrack(
+        audioTrack,
+        P2PConnection.#displayMediaStream
+      )
+    }
 
-    void this.peerConnection.addTrack(
-      audioTrack,
-      P2PConnection.#displayMediaStream
-    )
+    if (!P2PConnection.localScreenVideoElement?.srcObject) {
+      if (!P2PConnection.localScreenVideoElement) {
+        P2PConnection.localScreenVideoElement = new HTMLVideoElement()
+      }
+      const stream = new MediaStream([videoTrack])
+      P2PConnection.localScreenVideoElement.srcObject = stream
+      await P2PConnection.localScreenVideoElement.play()
+    }
   }
 
-  stopSharingScreen(): void {}
+  stopSharingScreen(): void {
+    if (this.displayVideoTrack) {
+      void this.peerConnection.removeTrack(this.displayVideoTrack)
+    }
+    if (this.displayAudioTrack) {
+      void this.peerConnection.removeTrack(this.displayAudioTrack)
+    }
+  }
 
   sendMessage(message: T): void {
     if (!this.channel) throw new P2PConnectionError('CONNECTION_NOT_READY')
