@@ -5655,6 +5655,11 @@ var P2PConnection = class _P2PConnection {
           }
           this.remoteCameraVideoElement.srcObject = stream;
           void this.remoteCameraVideoElement.play();
+          this.eventTarget.dispatchEvent(
+            new CustomEvent("camera", {
+              detail: this.remoteCameraVideoElement
+            })
+          );
           return;
         }
         if (!this.remoteDisplayMediaStreamId || this.remoteDisplayMediaStreamId === stream.id) {
@@ -5664,6 +5669,11 @@ var P2PConnection = class _P2PConnection {
           }
           this.remoteScreenVideoElement.srcObject = stream;
           void this.remoteScreenVideoElement.play();
+          this.eventTarget.dispatchEvent(
+            new CustomEvent("screen", {
+              detail: this.remoteScreenVideoElement
+            })
+          );
         }
       });
     }
@@ -5849,10 +5859,20 @@ var shareMicrophoneButton = document.getElementById("shareMicrophone");
 var stopSharingMicrophoneButton = document.getElementById(
   "stopSharingMicrophone"
 );
+var unmuteRemoteMicrophoneButton = document.getElementById(
+  "unmuteRemoteMicrophone"
+);
+var muteRemoteMicrophoneButton = document.getElementById(
+  "muteRemoteMicrophone"
+);
 var shareCameraButton = document.getElementById("shareCamera");
 var stopSharingCameraButton = document.getElementById("stopSharingCamera");
+var showCameraButton = document.getElementById("showCamera");
+var hideCameraButton = document.getElementById("hideCamera");
 var shareScreenButton = document.getElementById("shareScreen");
 var stopSharingScreenButton = document.getElementById("stopSharingScreen");
+var showScreenButton = document.getElementById("showScreen");
+var hideScreenButton = document.getElementById("hideScreen");
 var localCameraMount = document.getElementById("localCameraMount");
 var remoteCameraMount = document.getElementById("remoteCameraMount");
 var localScreenMount = document.getElementById("localScreenMount");
@@ -5873,6 +5893,12 @@ function setupWire(connection, messages2) {
   peer = connection;
   remoteCameraMount?.replaceChildren();
   remoteScreenMount?.replaceChildren();
+  void connection.addEventListener("camera", ({ detail }) => {
+    remoteCameraMount?.replaceChildren(detail);
+  });
+  void connection.addEventListener("screen", ({ detail }) => {
+    remoteScreenMount?.replaceChildren(detail);
+  });
   void connection.addEventListener("message", ({ detail }) => {
     switch (detail.kind) {
       case "snapshot": {
@@ -5886,6 +5912,9 @@ function setupWire(connection, messages2) {
         break;
       }
       case "microphone-shared": {
+        if (peer?.remoteCameraVideoElement) {
+          peer.remoteCameraVideoElement.muted = false;
+        }
         break;
       }
       case "camera-shared": {
@@ -5901,6 +5930,9 @@ function setupWire(connection, messages2) {
         break;
       }
       case "microphone-muted": {
+        if (peer?.remoteCameraVideoElement) {
+          peer.remoteCameraVideoElement.muted = true;
+        }
         break;
       }
       case "camera-muted": {
@@ -5992,6 +6024,20 @@ if (stopSharingMicrophoneButton instanceof HTMLButtonElement) {
     void peer.sendMessage({ kind: "microphone-muted" });
   });
 }
+if (unmuteRemoteMicrophoneButton instanceof HTMLButtonElement) {
+  void unmuteRemoteMicrophoneButton.addEventListener("click", () => {
+    if (peer?.remoteCameraVideoElement) {
+      peer.remoteCameraVideoElement.muted = false;
+    }
+  });
+}
+if (muteRemoteMicrophoneButton instanceof HTMLButtonElement) {
+  void muteRemoteMicrophoneButton.addEventListener("click", () => {
+    if (peer?.remoteCameraVideoElement) {
+      peer.remoteCameraVideoElement.muted = true;
+    }
+  });
+}
 if (shareCameraButton instanceof HTMLButtonElement) {
   void shareCameraButton.addEventListener("click", async () => {
     if (!peer) return;
@@ -6010,6 +6056,22 @@ if (stopSharingCameraButton instanceof HTMLButtonElement) {
     void peer.sendMessage({ kind: "camera-muted" });
   });
 }
+if (showCameraButton instanceof HTMLButtonElement) {
+  void showCameraButton.addEventListener("click", () => {
+    if (remoteCameraMount && peer?.remoteCameraVideoElement) {
+      remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement);
+    }
+  });
+}
+if (hideCameraButton instanceof HTMLButtonElement) {
+  void hideCameraButton.addEventListener("click", () => {
+    if (peer?.remoteCameraVideoElement) {
+      document.head.append(peer.remoteCameraVideoElement);
+    } else {
+      remoteCameraMount?.replaceChildren();
+    }
+  });
+}
 if (shareScreenButton instanceof HTMLButtonElement) {
   void shareScreenButton.addEventListener("click", async () => {
     if (!peer) return;
@@ -6026,6 +6088,22 @@ if (stopSharingScreenButton instanceof HTMLButtonElement) {
     void peer.stopSharingScreen();
     localScreenMount?.replaceChildren();
     void peer.sendMessage({ kind: "screen-muted" });
+  });
+}
+if (showScreenButton instanceof HTMLButtonElement) {
+  void showScreenButton.addEventListener("click", () => {
+    if (remoteScreenMount && peer?.remoteScreenVideoElement) {
+      remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement);
+    }
+  });
+}
+if (hideScreenButton instanceof HTMLButtonElement) {
+  void hideScreenButton.addEventListener("click", () => {
+    if (peer?.remoteScreenVideoElement) {
+      document.head.append(peer.remoteScreenVideoElement);
+    } else {
+      remoteScreenMount?.replaceChildren();
+    }
   });
 }
 /*! Bundled license information:

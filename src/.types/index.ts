@@ -33,6 +33,8 @@ export type InternalSignal =
  */
 export type P2PConnectionEventMap<T> = {
   message: T
+  camera: HTMLVideoElement
+  screen: HTMLVideoElement
 }
 
 /**

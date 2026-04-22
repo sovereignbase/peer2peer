@@ -187,6 +187,11 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
           this.remoteCameraVideoElement.srcObject = stream
           void this.remoteCameraVideoElement.play()
+          this.eventTarget.dispatchEvent(
+            new CustomEvent('camera', {
+              detail: this.remoteCameraVideoElement,
+            })
+          )
           return
         }
 
@@ -202,6 +207,11 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
           this.remoteScreenVideoElement.srcObject = stream
           void this.remoteScreenVideoElement.play()
+          this.eventTarget.dispatchEvent(
+            new CustomEvent('screen', {
+              detail: this.remoteScreenVideoElement,
+            })
+          )
         }
       })
     }

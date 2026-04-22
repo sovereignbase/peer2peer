@@ -45,10 +45,20 @@ const shareMicrophoneButton = document.getElementById('shareMicrophone')
 const stopSharingMicrophoneButton = document.getElementById(
   'stopSharingMicrophone'
 )
+const unmuteRemoteMicrophoneButton = document.getElementById(
+  'unmuteRemoteMicrophone'
+)
+const muteRemoteMicrophoneButton = document.getElementById(
+  'muteRemoteMicrophone'
+)
 const shareCameraButton = document.getElementById('shareCamera')
 const stopSharingCameraButton = document.getElementById('stopSharingCamera')
+const showCameraButton = document.getElementById('showCamera')
+const hideCameraButton = document.getElementById('hideCamera')
 const shareScreenButton = document.getElementById('shareScreen')
 const stopSharingScreenButton = document.getElementById('stopSharingScreen')
+const showScreenButton = document.getElementById('showScreen')
+const hideScreenButton = document.getElementById('hideScreen')
 
 const localCameraMount = document.getElementById('localCameraMount')
 const remoteCameraMount = document.getElementById('remoteCameraMount')
@@ -81,6 +91,14 @@ function setupWire(
   remoteCameraMount?.replaceChildren()
   remoteScreenMount?.replaceChildren()
 
+  void connection.addEventListener('camera', ({ detail }) => {
+    remoteCameraMount?.replaceChildren(detail)
+  })
+
+  void connection.addEventListener('screen', ({ detail }) => {
+    remoteScreenMount?.replaceChildren(detail)
+  })
+
   void connection.addEventListener('message', ({ detail }) => {
     switch (detail.kind) {
       case 'snapshot': {
@@ -94,6 +112,9 @@ function setupWire(
         break
       }
       case 'microphone-shared': {
+        if (peer?.remoteCameraVideoElement) {
+          peer.remoteCameraVideoElement.muted = false
+        }
         break
       }
       case 'camera-shared': {
@@ -109,6 +130,9 @@ function setupWire(
         break
       }
       case 'microphone-muted': {
+        if (peer?.remoteCameraVideoElement) {
+          peer.remoteCameraVideoElement.muted = true
+        }
         break
       }
       case 'camera-muted': {
@@ -226,6 +250,22 @@ if (stopSharingMicrophoneButton instanceof HTMLButtonElement) {
   })
 }
 
+if (unmuteRemoteMicrophoneButton instanceof HTMLButtonElement) {
+  void unmuteRemoteMicrophoneButton.addEventListener('click', () => {
+    if (peer?.remoteCameraVideoElement) {
+      peer.remoteCameraVideoElement.muted = false
+    }
+  })
+}
+
+if (muteRemoteMicrophoneButton instanceof HTMLButtonElement) {
+  void muteRemoteMicrophoneButton.addEventListener('click', () => {
+    if (peer?.remoteCameraVideoElement) {
+      peer.remoteCameraVideoElement.muted = true
+    }
+  })
+}
+
 if (shareCameraButton instanceof HTMLButtonElement) {
   void shareCameraButton.addEventListener('click', async () => {
     if (!peer) return
@@ -246,6 +286,24 @@ if (stopSharingCameraButton instanceof HTMLButtonElement) {
   })
 }
 
+if (showCameraButton instanceof HTMLButtonElement) {
+  void showCameraButton.addEventListener('click', () => {
+    if (remoteCameraMount && peer?.remoteCameraVideoElement) {
+      remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement)
+    }
+  })
+}
+
+if (hideCameraButton instanceof HTMLButtonElement) {
+  void hideCameraButton.addEventListener('click', () => {
+    if (peer?.remoteCameraVideoElement) {
+      document.head.append(peer.remoteCameraVideoElement)
+    } else {
+      remoteCameraMount?.replaceChildren()
+    }
+  })
+}
+
 if (shareScreenButton instanceof HTMLButtonElement) {
   void shareScreenButton.addEventListener('click', async () => {
     if (!peer) return
@@ -263,5 +321,23 @@ if (stopSharingScreenButton instanceof HTMLButtonElement) {
     void peer.stopSharingScreen()
     localScreenMount?.replaceChildren()
     void peer.sendMessage({ kind: 'screen-muted' })
+  })
+}
+
+if (showScreenButton instanceof HTMLButtonElement) {
+  void showScreenButton.addEventListener('click', () => {
+    if (remoteScreenMount && peer?.remoteScreenVideoElement) {
+      remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement)
+    }
+  })
+}
+
+if (hideScreenButton instanceof HTMLButtonElement) {
+  void hideScreenButton.addEventListener('click', () => {
+    if (peer?.remoteScreenVideoElement) {
+      document.head.append(peer.remoteScreenVideoElement)
+    } else {
+      remoteScreenMount?.replaceChildren()
+    }
   })
 }
