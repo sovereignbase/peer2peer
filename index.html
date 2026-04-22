@@ -254,17 +254,6 @@
         gap: 1rem;
       }
 
-      #switcher {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-      }
-
-      #switcher button[aria-pressed='false'] {
-        background: transparent;
-        color: #fff;
-      }
-
       .control-card {
         display: grid;
         gap: 0.75rem;
@@ -434,6 +423,19 @@
         flex: 0 0 1rem;
       }
 
+      pre {
+        margin: 0;
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      pre code.hljs {
+        padding: 1rem 1.125rem;
+        background: transparent;
+      }
+
       @media (min-width: 40rem) {
         main {
           padding: 2rem;
@@ -513,12 +515,13 @@
           </div>
         </div>
 
-        <pre><code class="language-typescript">
+        <pre>
+          <code class="language-typescript">
 import { QR } from '@sovereignbase/qr'
 import {
   CRList,
-  CRListDelta,
-  CRListSnapshot,
+  type CRListDelta,
+  type CRListSnapshot,
 } from '@sovereignbase/convergent-replicated-list'
 import { KVStore } from '@sovereignbase/offline-kv-store'
 import {

@@ -1,8 +1,8 @@
 import { QR } from '@sovereignbase/qr'
 import {
   CRList,
-  CRListDelta,
-  CRListSnapshot,
+  type CRListDelta,
+  type CRListSnapshot,
 } from '@sovereignbase/convergent-replicated-list'
 import { KVStore } from '@sovereignbase/offline-kv-store'
 import { P2PConnection, type Offer, type OfferorCopy } from './dist/index.js'

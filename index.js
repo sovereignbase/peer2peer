@@ -5579,8 +5579,8 @@ var P2PConnection = class _P2PConnection {
     if (contract.role === "offeror") {
       const pending = _P2PConnection.#pendingOffers.get(contract.offerId);
       if (!pending) throw new P2PConnectionError("UNKNOWN_PEER_CONTRACT");
-      this.peerConnection = pending.peerConnection;
       this.channel = pending.channel;
+      this.peerConnection = pending.peerConnection;
       this.channelPromise = Promise.resolve(pending.channel);
       _P2PConnection.#pendingOffers.delete(contract.offerId);
       void this.peerConnection.setRemoteDescription(contract.answer);
