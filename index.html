@@ -362,6 +362,52 @@
         line-height: 1.6;
       }
 
+      #localCameraMount,
+      #remoteCameraMount,
+      #localScreenMount,
+      #remoteScreenMount {
+        min-height: 12rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 1rem;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      #localCameraMount:empty::before,
+      #remoteCameraMount:empty::before,
+      #localScreenMount:empty::before,
+      #remoteScreenMount:empty::before {
+        content: 'No media';
+        display: grid;
+        place-items: center;
+        min-height: 12rem;
+        padding: 1rem;
+        color: rgba(255, 255, 255, 0.48);
+        font-size: 0.9rem;
+      }
+
+      #localCameraMount > video,
+      #remoteCameraMount > video,
+      #localScreenMount > video,
+      #remoteScreenMount > video {
+        display: block;
+        width: 100%;
+        min-height: 12rem;
+        background: #000;
+      }
+
+      #localCameraMount > video,
+      #remoteCameraMount > video {
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+      }
+
+      #localScreenMount > video,
+      #remoteScreenMount > video {
+        aspect-ratio: 16 / 9;
+        object-fit: contain;
+      }
+
       .composer {
         display: grid;
         gap: 0.75rem;
@@ -503,7 +549,9 @@
             <button id="finishOffer">Finish the offer</button>
           </div>
         </div>
-        <div class="chat">
+        <div class="control-card">
+          <h5>Chat</h5>
+          <p>After pairing, you can exchange messages.</p>
           <div id="messages" aria-live="polite"></div>
           <div class="composer">
             <input
@@ -517,28 +565,39 @@
 
         <div class="controls">
           <div class="control-card">
-            <h5>Video Call Controls</h5>
-            <p>After pairing, share microphone, camera, or screen.</p>
+            <h5>Call</h5>
+            <p>You can even share microphone, camera, or screen.</p>
+          </div>
+
+          <div class="control-card">
+            <h5>Local Mic</h5>
             <button id="shareMicrophone">Share microphone</button>
             <button id="stopSharingMicrophone">Stop microphone</button>
-            <button id="shareCamera">Share camera</button>
-            <button id="stopSharingCamera">Stop camera</button>
-            <button id="shareScreen">Share screen</button>
-            <button id="stopSharingScreen">Stop screen</button>
+            <h5>Remote Mic</h5>
+            <button id="shareMicrophone">Unmute microphone</button>
+            <button id="stopSharingMicrophone">Mute microphone</button>
           </div>
 
           <div class="control-card">
             <h5>Local Camera</h5>
             <div id="localCameraMount"></div>
+            <button id="shareCamera">Share camera</button>
+            <button id="stopSharingCamera">Stop camera</button>
             <h5>Remote Camera</h5>
             <div id="remoteCameraMount"></div>
+            <button id="showCamera">Show camera</button>
+            <button id="hideCamera">Hide camera</button>
           </div>
 
           <div class="control-card">
             <h5>Local Screen</h5>
             <div id="localScreenMount"></div>
+            <button id="shareScreen">Share screen</button>
+            <button id="stopSharingScreen">Stop screen</button>
             <h5>Remote Screen</h5>
             <div id="remoteScreenMount"></div>
+            <button id="showScreen">Show screen</button>
+            <button id="hideScreen">Hide screen</button>
           </div>
         </div>
 

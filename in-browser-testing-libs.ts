@@ -78,6 +78,9 @@ function setupWire(
   messages: CRList<ChatMessage>
 ): void {
   peer = connection
+  remoteCameraMount?.replaceChildren()
+  remoteScreenMount?.replaceChildren()
+
   void connection.addEventListener('message', ({ detail }) => {
     switch (detail.kind) {
       case 'snapshot': {
@@ -90,15 +93,35 @@ function setupWire(
         void messages.merge(detail.payload)
         break
       }
+      case 'microphone-shared': {
+        break
+      }
       case 'camera-shared': {
         if (remoteCameraMount && peer?.remoteCameraVideoElement) {
-          void remoteCameraMount.append(peer.remoteCameraVideoElement)
+          remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement)
         }
+        break
       }
       case 'screen-shared': {
         if (remoteScreenMount && peer?.remoteScreenVideoElement) {
-          void remoteScreenMount.append(peer.remoteScreenVideoElement)
+          remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement)
         }
+        break
+      }
+      case 'microphone-muted': {
+        break
+      }
+      case 'camera-muted': {
+        if (peer?.remoteCameraVideoElement) {
+          document.head.append(peer.remoteCameraVideoElement)
+        } else {
+          remoteCameraMount?.replaceChildren()
+        }
+        break
+      }
+      case 'screen-muted': {
+        remoteScreenMount?.replaceChildren()
+        break
       }
     }
   })
@@ -208,7 +231,7 @@ if (shareCameraButton instanceof HTMLButtonElement) {
     if (!peer) return
     await peer.shareCamera()
     if (localCameraMount && P2PConnection.localCameraVideoElement) {
-      void localCameraMount.append(P2PConnection.localCameraVideoElement)
+      localCameraMount.replaceChildren(P2PConnection.localCameraVideoElement)
     }
     void peer.sendMessage({ kind: 'camera-shared' })
   })
@@ -218,6 +241,7 @@ if (stopSharingCameraButton instanceof HTMLButtonElement) {
   void stopSharingCameraButton.addEventListener('click', () => {
     if (!peer) return
     void peer.stopSharingCamera()
+    localCameraMount?.replaceChildren()
     void peer.sendMessage({ kind: 'camera-muted' })
   })
 }
@@ -227,7 +251,7 @@ if (shareScreenButton instanceof HTMLButtonElement) {
     if (!peer) return
     void (await peer.shareScreen())
     if (localScreenMount && P2PConnection.localScreenVideoElement) {
-      void localScreenMount.append(P2PConnection.localScreenVideoElement)
+      localScreenMount.replaceChildren(P2PConnection.localScreenVideoElement)
     }
     void peer.sendMessage({ kind: 'screen-shared' })
   })
@@ -237,6 +261,7 @@ if (stopSharingScreenButton instanceof HTMLButtonElement) {
   void stopSharingScreenButton.addEventListener('click', () => {
     if (!peer) return
     void peer.stopSharingScreen()
+    localScreenMount?.replaceChildren()
     void peer.sendMessage({ kind: 'screen-muted' })
   })
 }

@@ -18,6 +18,16 @@ export type Contract = OfferorCopy | OffereeCopy
 
 export type ContractCopies = { offeror: OfferorCopy; offeree: OffereeCopy }
 
+export type InternalSignal =
+  | {
+      __sovereignbase_peer2peer: 'renegotiate-offer'
+      description: RTCSessionDescriptionInit
+    }
+  | {
+      __sovereignbase_peer2peer: 'renegotiate-answer'
+      description: RTCSessionDescriptionInit
+    }
+
 /**
  * Maps `P2PConnection` event names to their corresponding `CustomEvent.detail` payloads.
  */

@@ -1,8 +1,10 @@
 import {
+  createLocalAnswer,
+  createLocalOffer,
   createMediaPlayer,
-  waitForIceComplete,
   waitForChannelOpen,
   waitForIncomingDataChannel,
+  isInternalSignal,
 } from '../.helpers/index.js'
 
 import { decode, encode } from '@msgpack/msgpack'
@@ -13,6 +15,7 @@ import type {
   Offer,
   Contract,
   ContractCopies,
+  InternalSignal,
   P2PConnectionEventMap,
   P2PConnectionEventListenerFor,
 } from '../.types/index.js'
@@ -48,6 +51,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
     })
 
     const channel = peerConnection.createDataChannel('data')
+
     const offerId = crypto.randomUUID()
 
     P2PConnection.#pendingOffers.set(offerId, {
@@ -55,15 +59,9 @@ export class P2PConnection<T extends Record<string, unknown>> {
       channel,
     })
 
-    await peerConnection.setLocalDescription(await peerConnection.createOffer())
-    await waitForIceComplete(peerConnection)
-
-    if (!peerConnection.localDescription)
-      throw new P2PConnectionError('MISSING_LOCAL_DESCRIPTION')
-
     return {
       offerId,
-      description: peerConnection.localDescription,
+      description: await createLocalOffer(peerConnection),
     }
   }
   //offeree
@@ -86,15 +84,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
     const channelPromise = waitForIncomingDataChannel(peerConnection)
 
     await peerConnection.setRemoteDescription(offer.description)
-    await peerConnection.setLocalDescription(
-      await peerConnection.createAnswer()
-    )
-    await waitForIceComplete(peerConnection)
-
-    if (!peerConnection.localDescription)
-      throw new P2PConnectionError('MISSING_LOCAL_DESCRIPTION')
-
-    const answer = peerConnection.localDescription
+    const answer = await createLocalAnswer(peerConnection)
 
     P2PConnection.#acceptedOffers.set(offer.offerId, {
       peerConnection,
@@ -115,9 +105,13 @@ export class P2PConnection<T extends Record<string, unknown>> {
   }
 
   private readonly eventTarget: EventTarget
+  private readonly polite: boolean
   private readonly peerConnection: RTCPeerConnection
   private readonly channelPromise: Promise<RTCDataChannel>
   private channel?: RTCDataChannel
+  private makingOffer = false
+  private ignoreOffer = false
+  private isSettingRemoteAnswerPending = false
 
   private userAudioTrack: RTCRtpSender | undefined
   private userVideoTrack: RTCRtpSender | undefined
@@ -132,6 +126,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   constructor(contract: Contract) {
     this.eventTarget = new EventTarget()
+    this.polite = contract.role === 'offeree'
     let channelPromise: Promise<RTCDataChannel>
 
     if (contract.role === 'offeror') {
@@ -154,8 +149,15 @@ export class P2PConnection<T extends Record<string, unknown>> {
       this.channel = channel
 
       void this.channel.addEventListener('message', async ({ data }) => {
+        const detail = decode(data)
+
+        if (isInternalSignal(detail)) {
+          await this.handleInternalSignal(detail)
+          return
+        }
+
         this.eventTarget.dispatchEvent(
-          new CustomEvent<T>('message', { detail: decode(data) as T })
+          new CustomEvent<T>('message', { detail: detail as T })
         )
       })
 
@@ -163,6 +165,13 @@ export class P2PConnection<T extends Record<string, unknown>> {
     })
 
     if (this.peerConnection) {
+      void this.peerConnection.addEventListener(
+        'negotiationneeded',
+        async () => {
+          await this.handleNegotiationNeeded()
+        }
+      )
+
       void this.peerConnection.addEventListener('track', (ev) => {
         const stream = ev.streams[0] ?? new MediaStream([ev.track])
 
@@ -354,5 +363,57 @@ export class P2PConnection<T extends Record<string, unknown>> {
       listener as EventListenerOrEventListenerObject | null,
       options
     )
+  }
+
+  private async sendInternalSignal(signal: InternalSignal): Promise<void> {
+    const channel = await this.channelPromise
+    await waitForChannelOpen(channel)
+    channel.send(encode(signal))
+  }
+
+  private async handleNegotiationNeeded(): Promise<void> {
+    if (!this.channel) return
+
+    try {
+      this.makingOffer = true
+
+      const description = await createLocalOffer(this.peerConnection)
+
+      await this.sendInternalSignal({
+        __sovereignbase_peer2peer: 'renegotiate-offer',
+        description: description.toJSON(),
+      })
+    } finally {
+      this.makingOffer = false
+    }
+  }
+
+  private async handleInternalSignal(signal: InternalSignal): Promise<void> {
+    const readyForOffer =
+      !this.makingOffer &&
+      (this.peerConnection.signalingState === 'stable' ||
+        this.isSettingRemoteAnswerPending)
+
+    const offerCollision =
+      signal.__sovereignbase_peer2peer === 'renegotiate-offer' && !readyForOffer
+
+    this.ignoreOffer = !this.polite && offerCollision
+
+    if (this.ignoreOffer) return
+
+    this.isSettingRemoteAnswerPending =
+      signal.__sovereignbase_peer2peer === 'renegotiate-answer'
+
+    await this.peerConnection.setRemoteDescription(signal.description)
+    this.isSettingRemoteAnswerPending = false
+
+    if (signal.__sovereignbase_peer2peer === 'renegotiate-offer') {
+      const description = await createLocalAnswer(this.peerConnection)
+
+      await this.sendInternalSignal({
+        __sovereignbase_peer2peer: 'renegotiate-answer',
+        description: description.toJSON(),
+      })
+    }
   }
 }
