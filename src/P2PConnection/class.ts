@@ -19,6 +19,8 @@ import type {
 export class P2PConnection<T extends Record<string, unknown>> {
   static #userMediaStream: MediaStream | undefined
   static #displayMediaStream: MediaStream | undefined
+  static #localCameraVideoElement: HTMLVideoElement | undefined
+  static #localScreenVideoElement: HTMLVideoElement | undefined
 
   static #defaultIceServer: RTCIceServer = {
     urls: [
@@ -116,6 +118,9 @@ export class P2PConnection<T extends Record<string, unknown>> {
   private readonly channelPromise: Promise<RTCDataChannel>
   private channel?: RTCDataChannel
 
+  private remoteCameraVideoElement: HTMLVideoElement | undefined
+  private remoteScreenVideoElement: HTMLVideoElement | undefined
+
   constructor(contract: Contract) {
     this.eventTarget = new EventTarget()
 
@@ -164,35 +169,51 @@ export class P2PConnection<T extends Record<string, unknown>> {
     await waitForChannelOpen(channel)
   }
 
-  openAudioStream() {
+  async shareMicrophone(): Promise<void> {
     if (!P2PConnection.#userMediaStream) {
+      P2PConnection.#userMediaStream =
+        await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
     }
+    const audioTrack = P2PConnection.#userMediaStream.getAudioTracks()[0]
+
+    if (!audioTrack) return
+
+    void this.peerConnection.addTrack(
+      audioTrack,
+      P2PConnection.#userMediaStream
+    )
   }
 
-  closeAudioStream() {
+  stopSharingMicrophone(): void {}
+
+  async shareCamera(): Promise<void> {
     if (!P2PConnection.#userMediaStream) {
+      P2PConnection.#userMediaStream =
+        await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
     }
+    const videoTrack = P2PConnection.#userMediaStream.getVideoTracks()[0]
+
+    if (!videoTrack) return
+
+    void this.peerConnection.addTrack(
+      videoTrack,
+      P2PConnection.#userMediaStream
+    )
   }
 
-  openVideoStream() {
-    if (!P2PConnection.#userMediaStream) {
-    }
-  }
+  stopSharingCamera(): void {}
 
-  closeVideoStream() {
-    if (!P2PConnection.#userMediaStream) {
-    }
-  }
-
-  openDisplayStream() {
+  async shareScreen(): Promise<void> {
     if (!P2PConnection.#displayMediaStream) {
+      P2PConnection.#displayMediaStream =
+        await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true,
+        })
     }
   }
 
-  closeDisplayStream() {
-    if (!P2PConnection.#displayMediaStream) {
-    }
-  }
+  stopSharingScreen(): void {}
 
   sendMessage(message: T): void {
     if (!this.channel) throw new P2PConnectionError('CONNECTION_NOT_READY')

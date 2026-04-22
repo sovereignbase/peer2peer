@@ -23,6 +23,9 @@ export type ContractCopies = { offeror: OfferorCopy; offeree: OffereeCopy }
  */
 export type P2PConnectionEventMap<T> = {
   message: T
+  microphone: T
+  camera: T
+  screen: T
 }
 
 /**
