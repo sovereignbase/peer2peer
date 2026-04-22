@@ -5679,7 +5679,7 @@ function resolveConnection(connection, messages2) {
       case "snapshot": {
         void window.dispatchEvent(new PointerEvent("pointerup"));
         void messages2.merge(detail.payload);
-        void renderMessages(messages2);
+        void setTimeout(() => void renderMessages(messages2), 10);
         break;
       }
       case "delta": {
