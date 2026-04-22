@@ -17,6 +17,9 @@ import type {
 } from '../.types/index.js'
 
 export class P2PConnection<T extends Record<string, unknown>> {
+  static #userMediaStream: MediaStream | undefined
+  static #displayMediaStream: MediaStream | undefined
+
   static #defaultIceServer: RTCIceServer = {
     urls: [
       'stun:stun1.l.google.com:19302',
@@ -159,6 +162,36 @@ export class P2PConnection<T extends Record<string, unknown>> {
   async ready(): Promise<void> {
     const channel = await this.channelPromise
     await waitForChannelOpen(channel)
+  }
+
+  openAudioStream() {
+    if (!P2PConnection.#userMediaStream) {
+    }
+  }
+
+  closeAudioStream() {
+    if (!P2PConnection.#userMediaStream) {
+    }
+  }
+
+  openVideoStream() {
+    if (!P2PConnection.#userMediaStream) {
+    }
+  }
+
+  closeVideoStream() {
+    if (!P2PConnection.#userMediaStream) {
+    }
+  }
+
+  openDisplayStream() {
+    if (!P2PConnection.#displayMediaStream) {
+    }
+  }
+
+  closeDisplayStream() {
+    if (!P2PConnection.#displayMediaStream) {
+    }
   }
 
   sendMessage(message: T): void {
