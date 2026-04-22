@@ -141,33 +141,32 @@ export class P2PConnection<T extends Record<string, unknown>> {
       P2PConnection.#pendingOffers.delete(contract.offerId)
 
       void this.peerConnection.setRemoteDescription(contract.answer)
+    } else {
+      const accepted = P2PConnection.#acceptedOffers.get(contract.offerId)
 
-      void this.channel.addEventListener('message', async ({ data }) => {
-        this.eventTarget.dispatchEvent(
-          new CustomEvent<T>('message', { detail: decode(data) as T })
-        )
+      if (!accepted) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
+
+      this.peerConnection = accepted.peerConnection
+      this.channelPromise = accepted.channelPromise.then((channel) => {
+        this.channel = channel
+        return channel
       })
-      return
+      P2PConnection.#acceptedOffers.delete(contract.offerId)
     }
 
-    const accepted = P2PConnection.#acceptedOffers.get(contract.offerId)
-
-    if (!accepted) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
-
-    this.peerConnection = accepted.peerConnection
-    this.channelPromise = accepted.channelPromise.then((channel) => {
-      this.channel = channel
-
+    if (this.channel)
       void this.channel.addEventListener('message', async ({ data }) => {
         this.eventTarget.dispatchEvent(
           new CustomEvent<T>('message', { detail: decode(data) as T })
         )
       })
 
-      return channel
-    })
-
-    P2PConnection.#acceptedOffers.delete(contract.offerId)
+    if (this.peerConnection) {
+      void this.peerConnection.addEventListener('track', (ev) => {
+        ev.streams[0]
+        ev.track
+      })
+    }
   }
 
   async ready(): Promise<void> {
