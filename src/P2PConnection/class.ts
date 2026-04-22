@@ -1,4 +1,5 @@
 import {
+  createMediaPlayer,
   waitForIceComplete,
   waitForChannelOpen,
   waitForIncomingDataChannel,
@@ -174,7 +175,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
           this.remoteUserMediaStreamId = stream.id
 
           if (!this.remoteCameraVideoElement) {
-            this.remoteCameraVideoElement = document.createElement('video')
+            this.remoteCameraVideoElement = createMediaPlayer()
           }
 
           this.remoteCameraVideoElement.srcObject = stream
@@ -189,7 +190,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
           this.remoteDisplayMediaStreamId = stream.id
 
           if (!this.remoteScreenVideoElement) {
-            this.remoteScreenVideoElement = document.createElement('video')
+            this.remoteScreenVideoElement = createMediaPlayer()
           }
 
           this.remoteScreenVideoElement.srcObject = stream
@@ -243,6 +244,9 @@ export class P2PConnection<T extends Record<string, unknown>> {
     if (!P2PConnection.localCameraVideoElement?.srcObject) {
       if (!P2PConnection.localCameraVideoElement) {
         P2PConnection.localCameraVideoElement = document.createElement('video')
+        P2PConnection.localCameraVideoElement.autoplay = true
+        P2PConnection.localCameraVideoElement.playsInline = true
+        P2PConnection.localCameraVideoElement.muted = true
       }
       const stream = new MediaStream([videoTrack])
       P2PConnection.localCameraVideoElement.srcObject = stream
@@ -286,6 +290,9 @@ export class P2PConnection<T extends Record<string, unknown>> {
     if (!P2PConnection.localScreenVideoElement?.srcObject) {
       if (!P2PConnection.localScreenVideoElement) {
         P2PConnection.localScreenVideoElement = document.createElement('video')
+        P2PConnection.localScreenVideoElement.autoplay = true
+        P2PConnection.localScreenVideoElement.playsInline = true
+        P2PConnection.localScreenVideoElement.muted = true
       }
       const stream = new MediaStream([videoTrack])
       P2PConnection.localScreenVideoElement.srcObject = stream
