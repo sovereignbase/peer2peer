@@ -1,12 +1,18 @@
-export type PackageNameErrorCode = 'EXAMPLE_ERROR_CODE'
+export type P2PConnectionErrorCode =
+  | 'CHANNEL_ERROR'
+  | 'CHANNEL_CLOSED'
+  | 'CHANNEL_NOT_AVAILABLE'
+  | 'CONNECTION_NOT_READY'
+  | 'UNKNOWN_PEER_CONTRACT'
+  | 'MISSING_LOCAL_DESCRIPTION'
 
-export class PackageNameError extends Error {
-  readonly code: PackageNameErrorCode
+export class P2PConnectionError extends Error {
+  readonly code: P2PConnectionErrorCode
 
-  constructor(code: PackageNameErrorCode, message?: string) {
+  constructor(code: P2PConnectionErrorCode, message?: string) {
     const detail = message ?? code
-    super(`{@z-base/package-name} ${detail}`)
+    super(`{@sovereignbase/peer2peer} ${detail}`)
     this.code = code
-    this.name = 'PackageNameError'
+    this.name = 'P2PConnectionError'
   }
 }
