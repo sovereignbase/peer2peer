@@ -211,6 +211,23 @@ export class P2PConnection<T extends Record<string, unknown>> {
           audio: true,
         })
     }
+    const videoTrack = P2PConnection.#displayMediaStream.getVideoTracks()[0]
+
+    if (!videoTrack) return
+
+    void this.peerConnection.addTrack(
+      videoTrack,
+      P2PConnection.#displayMediaStream
+    )
+
+    const audioTrack = P2PConnection.#displayMediaStream.getAudioTracks()[0]
+
+    if (!audioTrack) return
+
+    void this.peerConnection.addTrack(
+      audioTrack,
+      P2PConnection.#displayMediaStream
+    )
   }
 
   stopSharingScreen(): void {}
