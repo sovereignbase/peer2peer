@@ -1,9 +1,240 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>ANBS peer to peer module specification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="ANBS peer to peer module specification for @sovereignbase/peer2peer defining offer and contract exchange, connection lifecycle, event model, message transport, media publication, and automatic renegotiation."
+    />
+    <meta
+      name="keywords"
+      content="ANBS, peer to peer module specification, peer to peer, p2p, WebRTC, rtcdatachannel, signaling, messagepack, media sharing, automatic renegotiation, sovereignbase peer2peer"
+    />
+    <meta name="author" content="Jori Lehtinen" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta name="application-name" content="peer2peer" />
+    <link rel="canonical" href="https://sovereignbase.dev/peer2peer/spec/" />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://sovereignbase.dev/peer2peer/spec/"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://sovereignbase.dev/sovereignbase_logo.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      href="https://sovereignbase.dev/sovereignbase_logo.png"
+    />
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Sovereignbase" />
+    <meta
+      property="og:title"
+      content="ANBS peer to peer module specification"
+    />
+    <meta
+      property="og:description"
+      content="ANBS peer to peer module specification for @sovereignbase/peer2peer defining offer and contract exchange, readiness, event delivery, media publication, and automatic renegotiation."
+    />
+    <meta
+      property="og:url"
+      content="https://sovereignbase.dev/peer2peer/spec/"
+    />
+    <meta
+      property="og:image"
+      content="https://sovereignbase.dev/sovereignbase_social_sharing_image.png"
+    />
+    <meta
+      property="og:image:secure_url"
+      content="https://sovereignbase.dev/sovereignbase_social_sharing_image.png"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="ANBS peer to peer module specification"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@sovereignbase" />
+    <meta
+      name="twitter:title"
+      content="ANBS peer to peer module specification"
+    />
+    <meta
+      name="twitter:description"
+      content="ANBS peer to peer module specification for @sovereignbase/peer2peer defining offer and contract exchange, readiness, event delivery, media publication, and automatic renegotiation."
+    />
+    <meta
+      name="twitter:image"
+      content="https://sovereignbase.dev/sovereignbase_social_sharing_image.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="ANBS peer to peer module specification"
+    />
+    <meta name="twitter:creator" content="@jortsupetterson" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://sovereignbase.dev/peer2peer/spec/#organization",
+            "name": "Sovereignbase",
+            "url": "https://github.com/sovereignbase",
+            "alternateName": ["@sovereignbase"],
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://sovereignbase.dev/sovereignbase_logo.png",
+              "width": 320,
+              "height": 320
+            },
+            "sameAs": [
+              "https://github.com/sovereignbase",
+              "https://jsr.io/@sovereignbase",
+              "https://www.npmjs.com/org/sovereignbase"
+            ]
+          },
+          {
+            "@type": "Person",
+            "@id": "https://sovereignbase.dev/peer2peer/spec/#author",
+            "name": "Jori Lehtinen",
+            "url": "https://github.com/jortsupetterson",
+            "alternateName": ["jortsupetterson", "@jortsupetterson"],
+            "sameAs": [
+              "https://github.com/jortsupetterson",
+              "https://www.npmjs.com/~jortsupetterson",
+              "https://jsr.io/user/ab186a13-a64f-429e-a757-927aa4fa6e6c",
+              "https://linkedin.com/in/jortsupetterson",
+              "https://x.com/jortsupetterson",
+              "https://www.youtube.com/@jortsupetterson"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://sovereignbase.dev/peer2peer/#website",
+            "url": "https://sovereignbase.dev/peer2peer/",
+            "name": "peer2peer",
+            "inLanguage": "en",
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#organization"
+            }
+          },
+          {
+            "@type": "SoftwareSourceCode",
+            "@id": "https://sovereignbase.dev/peer2peer/spec/#software",
+            "name": "@sovereignbase/peer2peer",
+            "alternateName": ["peer2peer"],
+            "url": "https://sovereignbase.dev/peer2peer/",
+            "description": "Peer to peer module for direct WebRTC connection setup, message transport, media sharing, and renegotiation.",
+            "codeRepository": "https://github.com/sovereignbase/peer2peer",
+            "license": "https://www.apache.org/licenses/LICENSE-2.0",
+            "programmingLanguage": ["TypeScript", "JavaScript"],
+            "runtimePlatform": ["Web Browser"],
+            "keywords": [
+              "peer to peer",
+              "p2p",
+              "webrtc",
+              "rtcdatachannel",
+              "messagepack",
+              "media sharing",
+              "renegotiation",
+              "specification"
+            ],
+            "image": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
+            "isAccessibleForFree": true,
+            "author": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#author"
+            },
+            "maintainer": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#organization"
+            },
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#organization"
+            },
+            "sameAs": [
+              "https://jsr.io/@sovereignbase/peer2peer",
+              "https://www.npmjs.com/package/@sovereignbase/peer2peer"
+            ]
+          },
+          {
+            "@type": "TechArticle",
+            "@id": "https://sovereignbase.dev/peer2peer/spec/#specification",
+            "headline": "ANBS peer to peer module specification",
+            "name": "ANBS peer to peer module specification",
+            "url": "https://sovereignbase.dev/peer2peer/spec/",
+            "description": "Specification of the ANBS peer to peer module covering offer exchange, contract copies, readiness, event delivery, message transfer, media publication, and automatic renegotiation.",
+            "inLanguage": "en",
+            "isPartOf": {
+              "@id": "https://sovereignbase.dev/peer2peer/#website"
+            },
+            "mainEntityOfPage": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#webpage"
+            },
+            "about": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#software"
+            },
+            "author": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#author"
+            },
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#organization"
+            },
+            "image": {
+              "@type": "ImageObject",
+              "url": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
+              "width": 1200,
+              "height": 630
+            }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://sovereignbase.dev/peer2peer/spec/#webpage",
+            "url": "https://sovereignbase.dev/peer2peer/spec/",
+            "name": "ANBS peer to peer module specification",
+            "description": "ANBS peer to peer module specification for @sovereignbase/peer2peer.",
+            "inLanguage": "en",
+            "isPartOf": {
+              "@id": "https://sovereignbase.dev/peer2peer/#website"
+            },
+            "about": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#software"
+            },
+            "author": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#author"
+            },
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/spec/#organization"
+            },
+            "primaryImageOfPage": {
+              "@type": "ImageObject",
+              "url": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
+              "width": 1200,
+              "height": 630
+            },
+            "relatedLink": [
+              "https://sovereignbase.dev/peer2peer/",
+              "https://sovereignbase.dev/peer2peer/docs",
+              "https://github.com/sovereignbase/peer2peer",
+              "https://jsr.io/@sovereignbase/peer2peer",
+              "https://www.npmjs.com/package/@sovereignbase/peer2peer"
+            ]
+          }
+        ]
+      }
+    </script>
     <script
       src="https://www.w3.org/Tools/respec/respec-w3c"
       class="remove"

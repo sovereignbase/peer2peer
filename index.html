@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>P2P Tool Demo</title>
+    <title>P2P Module Demo</title>
     <meta
       name="description"
       content="Peer to peer browser messenger demo for @sovereignbase/peer2peer with QR-based device pairing, local message history, and direct realtime messaging."
@@ -14,12 +14,18 @@
     />
     <meta name="author" content="Jori Lehtinen" />
     <meta name="theme-color" content="#000000" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta
       name="robots"
       content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
     />
     <meta name="application-name" content="peer2peer" />
     <link rel="canonical" href="https://sovereignbase.dev/peer2peer/" />
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://sovereignbase.dev/peer2peer/"
+    />
     <link rel="dns-prefetch" href="//cdnjs.cloudflare.com" />
     <link rel="dns-prefetch" href="//cdn.simpleicons.org" />
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
@@ -64,6 +70,10 @@
       property="og:image"
       content="https://sovereignbase.dev/sovereignbase_social_sharing_image.png"
     />
+    <meta
+      property="og:image:secure_url"
+      content="https://sovereignbase.dev/sovereignbase_social_sharing_image.png"
+    />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -72,6 +82,7 @@
       content="Sovereignbase peer to peer browser messenger demo"
     />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@sovereignbase" />
     <meta name="twitter:title" content="Sovereignbase Peer to Peer Demo" />
     <meta
       name="twitter:description"
@@ -127,7 +138,8 @@
             "@type": "WebSite",
             "@id": "https://sovereignbase.dev/peer2peer/#website",
             "url": "https://sovereignbase.dev/peer2peer/",
-            "name": "peer2peer",
+            "name": "P2P Module Demo",
+            "description": "Peer to peer browser messenger demo for @sovereignbase/peer2peer with QR-based device pairing, local message history, direct realtime messaging, and media sharing.",
             "inLanguage": "en",
             "publisher": {
               "@id": "https://sovereignbase.dev/peer2peer/#organization"
@@ -139,7 +151,7 @@
             "name": "@sovereignbase/peer2peer",
             "alternateName": ["peer2peer"],
             "url": "https://sovereignbase.dev/peer2peer/",
-            "description": "Peer to peer browser messenger demo with QR-based device pairing, local message history, and direct realtime messaging.",
+            "description": "Peer to peer browser messaging module for direct WebRTC connection setup, MessagePack messaging, media sharing, and renegotiation.",
             "codeRepository": "https://github.com/sovereignbase/peer2peer",
             "license": "https://www.apache.org/licenses/LICENSE-2.0",
             "programmingLanguage": ["TypeScript", "JavaScript"],
@@ -149,7 +161,11 @@
               "p2p chat",
               "QR pairing",
               "WebRTC messenger",
-              "browser messaging demo"
+              "browser messaging demo",
+              "rtcdatachannel",
+              "messagepack",
+              "screen sharing",
+              "camera sharing"
             ],
             "image": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
             "isAccessibleForFree": true,
@@ -165,17 +181,52 @@
             "sameAs": [
               "https://jsr.io/@sovereignbase/peer2peer",
               "https://www.npmjs.com/package/@sovereignbase/peer2peer"
+            ],
+            "subjectOf": [
+              "https://sovereignbase.dev/peer2peer/spec/",
+              "https://sovereignbase.dev/peer2peer/docs"
             ]
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://sovereignbase.dev/peer2peer/#demo",
+            "name": "P2P Module Demo",
+            "url": "https://sovereignbase.dev/peer2peer/",
+            "description": "Browser demo for @sovereignbase/peer2peer featuring QR-based device pairing, direct messaging, local message history, and media sharing.",
+            "applicationCategory": "CommunicationApplication",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requires a modern browser with WebRTC support.",
+            "featureList": [
+              "QR-based device pairing",
+              "Direct peer-to-peer messaging",
+              "Local message history",
+              "Camera, microphone, and screen sharing"
+            ],
+            "isPartOf": {
+              "@id": "https://sovereignbase.dev/peer2peer/#website"
+            },
+            "about": {
+              "@id": "https://sovereignbase.dev/peer2peer/#software"
+            },
+            "author": {
+              "@id": "https://sovereignbase.dev/peer2peer/#author"
+            },
+            "publisher": {
+              "@id": "https://sovereignbase.dev/peer2peer/#organization"
+            }
           },
           {
             "@type": "WebPage",
             "@id": "https://sovereignbase.dev/peer2peer/#webpage",
             "url": "https://sovereignbase.dev/peer2peer/",
-            "name": "Sovereignbase Peer to Peer Demo",
+            "name": "P2P Module Demo",
             "description": "Peer to peer browser messenger demo for @sovereignbase/peer2peer with QR-based device pairing and direct realtime messaging.",
             "inLanguage": "en",
             "isPartOf": {
               "@id": "https://sovereignbase.dev/peer2peer/#website"
+            },
+            "mainEntity": {
+              "@id": "https://sovereignbase.dev/peer2peer/#demo"
             },
             "about": {
               "@id": "https://sovereignbase.dev/peer2peer/#software"
@@ -191,7 +242,14 @@
               "url": "https://sovereignbase.dev/sovereignbase_social_sharing_image.png",
               "width": 1200,
               "height": 630
-            }
+            },
+            "relatedLink": [
+              "https://sovereignbase.dev/peer2peer/spec/",
+              "https://sovereignbase.dev/peer2peer/docs",
+              "https://github.com/sovereignbase/peer2peer",
+              "https://jsr.io/@sovereignbase/peer2peer",
+              "https://www.npmjs.com/package/@sovereignbase/peer2peer"
+            ]
           }
         ]
       }
@@ -529,7 +587,7 @@
           </div>
         </nav>
 
-        <h1>Sovereignbase P2P Tool Demo</h1>
+        <h1>Sovereignbase P2P Module Demo</h1>
         <p class="lede">
           Open this page on two devices and follow the instructions to try a
           peer to peer messenger demo.
