@@ -502,7 +502,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
       const description = await createLocalOffer(this.peerConnection)
 
       void (await this.sendInternalSignal({
-        __sovereignbase_peer2peer: 'renegotiate-offer',
+        __anbs_peer2peer: 'renegotiate-offer',
         description: description.toJSON(),
       }))
     } finally {
@@ -517,23 +517,23 @@ export class P2PConnection<T extends Record<string, unknown>> {
         this.isSettingRemoteAnswerPending)
 
     const offerCollision =
-      signal.__sovereignbase_peer2peer === 'renegotiate-offer' && !readyForOffer
+      signal.__anbs_peer2peer === 'renegotiate-offer' && !readyForOffer
 
     this.ignoreOffer = !this.polite && offerCollision
 
     if (this.ignoreOffer) return
 
     this.isSettingRemoteAnswerPending =
-      signal.__sovereignbase_peer2peer === 'renegotiate-answer'
+      signal.__anbs_peer2peer === 'renegotiate-answer'
 
     void (await this.peerConnection.setRemoteDescription(signal.description))
     this.isSettingRemoteAnswerPending = false
 
-    if (signal.__sovereignbase_peer2peer === 'renegotiate-offer') {
+    if (signal.__anbs_peer2peer === 'renegotiate-offer') {
       const description = await createLocalAnswer(this.peerConnection)
 
       void (await this.sendInternalSignal({
-        __sovereignbase_peer2peer: 'renegotiate-answer',
+        __anbs_peer2peer: 'renegotiate-answer',
         description: description.toJSON(),
       }))
     }

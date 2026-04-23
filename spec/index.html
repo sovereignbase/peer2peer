@@ -30,6 +30,11 @@
           'no-unused-dfns': true,
         },
         localBiblio: {
+          DOM: {
+            title: 'DOM Standard',
+            href: 'https://dom.spec.whatwg.org/',
+            publisher: 'WHATWG',
+          },
           INFRA: {
             title: 'Infra Standard',
             href: 'https://infra.spec.whatwg.org/',
@@ -121,12 +126,9 @@
       </aside>
     </section>
     <section id="conformance">
-      <h2>Conformance</h2>
-      <p>
-        A conforming implementation MUST exhibit the behavior defined in this
-        document. Unless stated otherwise, structural terms such as list, map,
-        string, and record are to be interpreted consistently with [[INFRA]].
-      </p>
+      A conforming implementation MUST exhibit the behavior defined in this
+      document. Unless stated otherwise, structural terms such as list, map,
+      string, and record are to be interpreted consistently with [[INFRA]].
     </section>
     <section>
       <h2>Core Concepts</h2>
@@ -314,7 +316,7 @@
         </p>
         <pre class="js">
 {
-  __sovereignbase_peer2peer: 'renegotiate-offer' | 'renegotiate-answer',
+  __anbs_peer2peer: 'renegotiate-offer' | 'renegotiate-answer',
   description: SessionDescriptionInit
 }
         </pre>
@@ -379,33 +381,38 @@
     <section>
       <h2>Failure Model</h2>
       <p>
-        Failures defined by this abstraction use <code>P2PConnectionError</code>
-        with one of the following stable codes:
+        A conforming implementation MUST surface failure conditions when an
+        operation defined by this specification cannot complete.
+      </p>
+      <p>
+        The representation of those failures is implementation-defined. A
+        conforming implementation MAY expose error codes, error objects,
+        exceptions, rejected promises, events, or equivalent diagnostics.
       </p>
       <table class="simple">
         <thead>
           <tr>
-            <th>Code</th>
+            <th>Failure condition</th>
             <th>Meaning</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><code>CHANNEL_ERROR</code></td>
+            <td>Data channel error before readiness</td>
             <td>
               The data channel emitted an error indication before reaching the
               <code>"open"</code> state.
             </td>
           </tr>
           <tr>
-            <td><code>CHANNEL_CLOSED</code></td>
+            <td>Data channel close before readiness</td>
             <td>
               The data channel closed before reaching the
               <code>"open"</code> state.
             </td>
           </tr>
           <tr>
-            <td><code>CHANNEL_NOT_AVAILABLE</code></td>
+            <td>Incoming data channel unavailable</td>
             <td>
               The peer connection reached <code>"failed"</code> or
               <code>"closed"</code> before an incoming data channel was
@@ -413,21 +420,21 @@
             </td>
           </tr>
           <tr>
-            <td><code>CONNECTION_NOT_READY</code></td>
+            <td>Application message sent before readiness</td>
             <td>
               An application message was sent before the data channel was
               available and open.
             </td>
           </tr>
           <tr>
-            <td><code>UNKNOWN_PEER_CONTRACT</code></td>
+            <td>Unknown contract state</td>
             <td>
               Connection construction was attempted with a contract whose
               reserved local state did not exist.
             </td>
           </tr>
           <tr>
-            <td><code>MISSING_LOCAL_DESCRIPTION</code></td>
+            <td>Missing local description</td>
             <td>
               A local offer or answer description was absent after ICE gathering
               completed.
@@ -435,10 +442,6 @@
           </tr>
         </tbody>
       </table>
-      <p>
-        A <code>P2PConnectionError</code> message MUST be prefixed with
-        <code>{@sovereignbase/peer2peer}</code>.
-      </p>
     </section>
     <section>
       <h2>Event Model</h2>
@@ -544,26 +547,17 @@
       <section>
         <h3>Common ICE Configuration</h3>
         <p>
-          The operations <code>makeOffer()</code> and
-          <code>acceptOffer()</code> MUST create a peer connection whose
-          <code>iceServers</code> list begins with the following STUN server
-          record:
+          Connection-establishment operations MAY apply implementation-defined
+          internal ICE server defaults.
         </p>
-        <pre class="js">
-{
-  urls: [
-    'stun:stun1.l.google.com:19302',
-    'stun:stun2.l.google.com:19302',
-    'stun:stun3.l.google.com:19302',
-    'stun:stun4.l.google.com:19302',
-  ],
-}
-        </pre>
         <p>
-          If <code>additionalIceServers</code> is omitted, it MUST be treated as
-          an empty list. If <code>additionalIceServers</code> is provided, its
-          members MUST be appended after the built-in STUN server record. The
-          peer connection MUST use <code>iceTransportPolicy</code> equal to
+          If supplementary ICE server configuration is not supplied, it MUST be
+          treated as empty. If supplementary ICE server configuration is
+          supplied, it MUST be incorporated in addition to any internal
+          defaults.
+        </p>
+        <p>
+          The peer connection MUST use <code>iceTransportPolicy</code> equal to
           <code>"all"</code>.
         </p>
       </section>
@@ -713,8 +707,18 @@
       <section>
         <h3>Observer Registration</h3>
         <p>
-          A connection MUST provide operations for adding and removing observers
-          for the connection-scoped notification surface.
+          A connection MUST expose the connection-scoped event surface through
+          an observer registration mechanism.
+        </p>
+        <p>
+          A conforming implementation MAY realize that mechanism using the
+          <code>EventTarget</code> model defined by [[DOM]], including
+          <code>addEventListener()</code> and
+          <code>removeEventListener()</code>, or an equivalent observer API.
+        </p>
+        <p>
+          In either case, observers MUST be able to subscribe to and unsubscribe
+          from each event kind defined by this specification.
         </p>
       </section>
       <section>

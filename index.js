@@ -5559,7 +5559,7 @@ async function createLocalAnswer(peerConnection) {
 function isInternalSignal(value) {
   if (!value || typeof value !== "object") return false;
   const signal = value;
-  return (signal.__sovereignbase_peer2peer === "renegotiate-offer" || signal.__sovereignbase_peer2peer === "renegotiate-answer") && !!signal.description && typeof signal.description === "object";
+  return (signal.__anbs_peer2peer === "renegotiate-offer" || signal.__anbs_peer2peer === "renegotiate-answer") && !!signal.description && typeof signal.description === "object";
 }
 var P2PConnection = class _P2PConnection {
   static #userMediaStream;
@@ -5941,7 +5941,7 @@ var P2PConnection = class _P2PConnection {
       this.makingOffer = true;
       const description = await createLocalOffer(this.peerConnection);
       void await this.sendInternalSignal({
-        __sovereignbase_peer2peer: "renegotiate-offer",
+        __anbs_peer2peer: "renegotiate-offer",
         description: description.toJSON()
       });
     } finally {
@@ -5950,16 +5950,16 @@ var P2PConnection = class _P2PConnection {
   }
   async handleInternalSignal(signal) {
     const readyForOffer = !this.makingOffer && (this.peerConnection.signalingState === "stable" || this.isSettingRemoteAnswerPending);
-    const offerCollision = signal.__sovereignbase_peer2peer === "renegotiate-offer" && !readyForOffer;
+    const offerCollision = signal.__anbs_peer2peer === "renegotiate-offer" && !readyForOffer;
     this.ignoreOffer = !this.polite && offerCollision;
     if (this.ignoreOffer) return;
-    this.isSettingRemoteAnswerPending = signal.__sovereignbase_peer2peer === "renegotiate-answer";
+    this.isSettingRemoteAnswerPending = signal.__anbs_peer2peer === "renegotiate-answer";
     void await this.peerConnection.setRemoteDescription(signal.description);
     this.isSettingRemoteAnswerPending = false;
-    if (signal.__sovereignbase_peer2peer === "renegotiate-offer") {
+    if (signal.__anbs_peer2peer === "renegotiate-offer") {
       const description = await createLocalAnswer(this.peerConnection);
       void await this.sendInternalSignal({
-        __sovereignbase_peer2peer: "renegotiate-answer",
+        __anbs_peer2peer: "renegotiate-answer",
         description: description.toJSON()
       });
     }

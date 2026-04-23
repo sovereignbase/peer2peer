@@ -350,7 +350,7 @@ test('integration: impolite peers ignore colliding renegotiation offers', async 
   offeror.channel.dispatchEvent(
     createEvent('message', {
       data: encode({
-        __sovereignbase_peer2peer: 'renegotiate-offer',
+        __anbs_peer2peer: 'renegotiate-offer',
         description: {
           type: 'offer',
           sdp: 'offer:collision:renegotiate',

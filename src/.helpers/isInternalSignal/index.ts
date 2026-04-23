@@ -13,8 +13,8 @@ export function isInternalSignal(value: unknown): value is InternalSignal {
   const signal = value as Partial<InternalSignal>
 
   return (
-    (signal.__sovereignbase_peer2peer === 'renegotiate-offer' ||
-      signal.__sovereignbase_peer2peer === 'renegotiate-answer') &&
+    (signal.__anbs_peer2peer === 'renegotiate-offer' ||
+      signal.__anbs_peer2peer === 'renegotiate-answer') &&
     !!signal.description &&
     typeof signal.description === 'object'
   )
