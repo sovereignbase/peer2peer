@@ -5,8 +5,9 @@
 
 # peer2peer
 
-Simple WebRTC wrapper for peer to peer connection setup in browsers. It creates
-portable offer and contract objects that you move through your own signaling channel.
+Simple WebRTC wrapper for peer to peer connection setup in browsers.
+
+It creates portable offer and contract objects that you move through your own signaling channel.
 
 - [Try the demo](https://sovereignbase.dev/peer2peer)
 

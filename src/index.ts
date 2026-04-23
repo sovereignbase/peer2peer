@@ -7,6 +7,9 @@ export type {
   OffereeCopy,
   OfferorCopy,
   ContractCopies,
+  P2PConnectionEventMap,
+  P2PConnectionEventListener,
+  P2PConnectionEventListenerFor,
 } from './.types/index.js'
 /***/
 export { P2PConnection } from './P2PConnection/class.js'
