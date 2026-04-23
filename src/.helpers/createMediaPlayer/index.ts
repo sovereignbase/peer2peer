@@ -4,7 +4,7 @@ export function createMediaPlayer(): HTMLVideoElement {
   mediaPlayer.autoplay = true
   mediaPlayer.playsInline = true
 
-  document.head.append(mediaPlayer)
+  void document.head.append(mediaPlayer)
 
   return mediaPlayer
 }

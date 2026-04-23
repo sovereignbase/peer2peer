@@ -5,16 +5,16 @@ export function waitForIncomingDataChannel(
 ): Promise<RTCDataChannel> {
   return new Promise<RTCDataChannel>((resolve, reject) => {
     const cleanup = (): void => {
-      peerConnection.removeEventListener('datachannel', onDataChannel)
-      peerConnection.removeEventListener(
+      void peerConnection.removeEventListener('datachannel', onDataChannel)
+      void peerConnection.removeEventListener(
         'connectionstatechange',
         onConnectionStateChange
       )
     }
 
     const onDataChannel = (event: RTCDataChannelEvent): void => {
-      cleanup()
-      resolve(event.channel)
+      void cleanup()
+      void resolve(event.channel)
     }
 
     const onConnectionStateChange = (): void => {
@@ -22,13 +22,13 @@ export function waitForIncomingDataChannel(
         peerConnection.connectionState === 'failed' ||
         peerConnection.connectionState === 'closed'
       ) {
-        cleanup()
-        reject(new P2PConnectionError('CHANNEL_NOT_AVAILABLE'))
+        void cleanup()
+        void reject(new P2PConnectionError('CHANNEL_NOT_AVAILABLE'))
       }
     }
 
-    peerConnection.addEventListener('datachannel', onDataChannel)
-    peerConnection.addEventListener(
+    void peerConnection.addEventListener('datachannel', onDataChannel)
+    void peerConnection.addEventListener(
       'connectionstatechange',
       onConnectionStateChange
     )

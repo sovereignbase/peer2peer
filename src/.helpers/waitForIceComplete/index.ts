@@ -5,26 +5,26 @@ export async function waitForIceComplete(
 
   await new Promise<void>((resolve) => {
     const cleanup = (): void => {
-      peerConnection.removeEventListener(
+      void peerConnection.removeEventListener(
         'icegatheringstatechange',
         onIceGatheringStateChange
       )
-      peerConnection.removeEventListener('icecandidate', onIceCandidate)
-      resolve()
+      void peerConnection.removeEventListener('icecandidate', onIceCandidate)
+      void resolve()
     }
 
     const onIceGatheringStateChange = (): void => {
-      if (peerConnection.iceGatheringState === 'complete') cleanup()
+      if (peerConnection.iceGatheringState === 'complete') void cleanup()
     }
 
     const onIceCandidate = (event: RTCPeerConnectionIceEvent): void => {
-      if (!event.candidate) cleanup()
+      if (!event.candidate) void cleanup()
     }
 
-    peerConnection.addEventListener(
+    void peerConnection.addEventListener(
       'icegatheringstatechange',
       onIceGatheringStateChange
     )
-    peerConnection.addEventListener('icecandidate', onIceCandidate)
+    void peerConnection.addEventListener('icecandidate', onIceCandidate)
   })
 }

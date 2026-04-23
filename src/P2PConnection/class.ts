@@ -54,7 +54,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
     const offerId = crypto.randomUUID()
 
-    P2PConnection.#pendingOffers.set(offerId, {
+    void P2PConnection.#pendingOffers.set(offerId, {
       peerConnection,
       channel,
     })
@@ -83,10 +83,10 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
     const channelPromise = waitForIncomingDataChannel(peerConnection)
 
-    await peerConnection.setRemoteDescription(offer.description)
+    void (await peerConnection.setRemoteDescription(offer.description))
     const answer = await createLocalAnswer(peerConnection)
 
-    P2PConnection.#acceptedOffers.set(offer.offerId, {
+    void P2PConnection.#acceptedOffers.set(offer.offerId, {
       peerConnection,
       channelPromise,
     })
@@ -135,14 +135,14 @@ export class P2PConnection<T extends Record<string, unknown>> {
       this.peerConnection = offer.peerConnection
       this.channel = offer.channel
       channelPromise = Promise.resolve(offer.channel)
-      P2PConnection.#pendingOffers.delete(contract.offerId)
+      void P2PConnection.#pendingOffers.delete(contract.offerId)
       void this.peerConnection.setRemoteDescription(contract.answer)
     } else {
       const offer = P2PConnection.#acceptedOffers.get(contract.offerId)
       if (!offer) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
       this.peerConnection = offer.peerConnection
       channelPromise = offer.channelPromise
-      P2PConnection.#acceptedOffers.delete(contract.offerId)
+      void P2PConnection.#acceptedOffers.delete(contract.offerId)
     }
 
     this.channelPromise = channelPromise.then((channel) => {
@@ -152,11 +152,11 @@ export class P2PConnection<T extends Record<string, unknown>> {
         const detail = decode(data)
 
         if (isInternalSignal(detail)) {
-          await this.handleInternalSignal(detail)
+          void (await this.handleInternalSignal(detail))
           return
         }
 
-        this.eventTarget.dispatchEvent(
+        void this.eventTarget.dispatchEvent(
           new CustomEvent<T>('message', { detail: detail as T })
         )
       })
@@ -168,7 +168,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
       void this.peerConnection.addEventListener(
         'negotiationneeded',
         async () => {
-          await this.handleNegotiationNeeded()
+          void (await this.handleNegotiationNeeded())
         }
       )
 
@@ -187,7 +187,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
           this.remoteCameraVideoElement.srcObject = stream
           void this.remoteCameraVideoElement.play()
-          this.eventTarget.dispatchEvent(
+          void this.eventTarget.dispatchEvent(
             new CustomEvent('camera', {
               detail: this.remoteCameraVideoElement,
             })
@@ -207,7 +207,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
           this.remoteScreenVideoElement.srcObject = stream
           void this.remoteScreenVideoElement.play()
-          this.eventTarget.dispatchEvent(
+          void this.eventTarget.dispatchEvent(
             new CustomEvent('screen', {
               detail: this.remoteScreenVideoElement,
             })
@@ -219,7 +219,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   async ready(): Promise<void> {
     const channel = await this.channelPromise
-    await waitForChannelOpen(channel)
+    void (await waitForChannelOpen(channel))
   }
 
   async shareMicrophone(): Promise<void> {
@@ -239,7 +239,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   stopSharingMicrophone(): void {
     if (this.userAudioTrack) {
-      this.peerConnection.removeTrack(this.userAudioTrack)
+      void this.peerConnection.removeTrack(this.userAudioTrack)
       this.userAudioTrack = undefined
     }
   }
@@ -273,7 +273,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   stopSharingCamera(): void {
     if (this.userVideoTrack) {
-      this.peerConnection.removeTrack(this.userVideoTrack)
+      void this.peerConnection.removeTrack(this.userVideoTrack)
       this.userVideoTrack = undefined
     }
   }
@@ -330,12 +330,12 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   sendMessage(message: T): void {
     if (!this.channel) throw new P2PConnectionError('CONNECTION_NOT_READY')
-    this.channel.send(encode(message))
+    void this.channel.send(encode(message))
   }
 
   closeConnection(): void {
     if (this.channel) this.channel.close()
-    this.peerConnection.close()
+    void this.peerConnection.close()
   }
   /**
    * Registers an event listener.
@@ -349,7 +349,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
     listener: P2PConnectionEventListenerFor<T, K> | null,
     options?: boolean | AddEventListenerOptions
   ): void {
-    this.eventTarget.addEventListener(
+    void this.eventTarget.addEventListener(
       type,
       listener as EventListenerOrEventListenerObject | null,
       options
@@ -368,7 +368,7 @@ export class P2PConnection<T extends Record<string, unknown>> {
     listener: P2PConnectionEventListenerFor<T, K> | null,
     options?: boolean | EventListenerOptions
   ): void {
-    this.eventTarget.removeEventListener(
+    void this.eventTarget.removeEventListener(
       type,
       listener as EventListenerOrEventListenerObject | null,
       options
@@ -377,8 +377,8 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
   private async sendInternalSignal(signal: InternalSignal): Promise<void> {
     const channel = await this.channelPromise
-    await waitForChannelOpen(channel)
-    channel.send(encode(signal))
+    void (await waitForChannelOpen(channel))
+    void channel.send(encode(signal))
   }
 
   private async handleNegotiationNeeded(): Promise<void> {
@@ -389,10 +389,10 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
       const description = await createLocalOffer(this.peerConnection)
 
-      await this.sendInternalSignal({
+      void (await this.sendInternalSignal({
         __sovereignbase_peer2peer: 'renegotiate-offer',
         description: description.toJSON(),
-      })
+      }))
     } finally {
       this.makingOffer = false
     }
@@ -414,16 +414,16 @@ export class P2PConnection<T extends Record<string, unknown>> {
     this.isSettingRemoteAnswerPending =
       signal.__sovereignbase_peer2peer === 'renegotiate-answer'
 
-    await this.peerConnection.setRemoteDescription(signal.description)
+    void (await this.peerConnection.setRemoteDescription(signal.description))
     this.isSettingRemoteAnswerPending = false
 
     if (signal.__sovereignbase_peer2peer === 'renegotiate-offer') {
       const description = await createLocalAnswer(this.peerConnection)
 
-      await this.sendInternalSignal({
+      void (await this.sendInternalSignal({
         __sovereignbase_peer2peer: 'renegotiate-answer',
         description: description.toJSON(),
-      })
+      }))
     }
   }
 }

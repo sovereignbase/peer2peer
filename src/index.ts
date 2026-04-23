@@ -1,4 +1,3 @@
-export { P2PConnection } from './P2PConnection/class.js'
 export type {
   Offer,
   Contract,
@@ -6,3 +5,10 @@ export type {
   OfferorCopy,
   ContractCopies,
 } from './.types/index.js'
+/***/
+export { P2PConnection } from './P2PConnection/class.js'
+/***/
+export {
+  P2PConnectionError,
+  type P2PConnectionErrorCode,
+} from './.errors/class.js'

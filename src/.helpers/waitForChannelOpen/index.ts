@@ -5,28 +5,28 @@ export function waitForChannelOpen(channel: RTCDataChannel): Promise<void> {
 
   return new Promise<void>((resolve, reject) => {
     const cleanup = (): void => {
-      channel.removeEventListener('open', onOpen)
-      channel.removeEventListener('close', onClose)
-      channel.removeEventListener('error', onError)
+      void channel.removeEventListener('open', onOpen)
+      void channel.removeEventListener('close', onClose)
+      void channel.removeEventListener('error', onError)
     }
 
     const onOpen = (): void => {
-      cleanup()
-      resolve()
+      void cleanup()
+      void resolve()
     }
 
     const onClose = (): void => {
-      cleanup()
-      reject(new P2PConnectionError('CHANNEL_CLOSED'))
+      void cleanup()
+      void reject(new P2PConnectionError('CHANNEL_CLOSED'))
     }
 
     const onError = (): void => {
-      cleanup()
-      reject(new P2PConnectionError('CHANNEL_ERROR'))
+      void cleanup()
+      void reject(new P2PConnectionError('CHANNEL_ERROR'))
     }
 
-    channel.addEventListener('open', onOpen)
-    channel.addEventListener('close', onClose)
-    channel.addEventListener('error', onError)
+    void channel.addEventListener('open', onOpen)
+    void channel.addEventListener('close', onClose)
+    void channel.addEventListener('error', onError)
   })
 }

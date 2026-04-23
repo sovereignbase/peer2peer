@@ -51,17 +51,18 @@ const unmuteRemoteMicrophoneButton = document.getElementById(
 const muteRemoteMicrophoneButton = document.getElementById(
   'muteRemoteMicrophone'
 )
+
+const localCameraMount = document.getElementById('localCameraMount')
+const remoteCameraMount = document.getElementById('remoteCameraMount')
 const shareCameraButton = document.getElementById('shareCamera')
 const stopSharingCameraButton = document.getElementById('stopSharingCamera')
 const showCameraButton = document.getElementById('showCamera')
 const hideCameraButton = document.getElementById('hideCamera')
+
 const shareScreenButton = document.getElementById('shareScreen')
 const stopSharingScreenButton = document.getElementById('stopSharingScreen')
 const showScreenButton = document.getElementById('showScreen')
 const hideScreenButton = document.getElementById('hideScreen')
-
-const localCameraMount = document.getElementById('localCameraMount')
-const remoteCameraMount = document.getElementById('remoteCameraMount')
 const localScreenMount = document.getElementById('localScreenMount')
 const remoteScreenMount = document.getElementById('remoteScreenMount')
 
@@ -119,13 +120,13 @@ function setupWire(
       }
       case 'camera-shared': {
         if (remoteCameraMount && peer?.remoteCameraVideoElement) {
-          remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement)
+          void remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement)
         }
         break
       }
       case 'screen-shared': {
         if (remoteScreenMount && peer?.remoteScreenVideoElement) {
-          remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement)
+          void remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement)
         }
         break
       }
@@ -137,14 +138,14 @@ function setupWire(
       }
       case 'camera-muted': {
         if (peer?.remoteCameraVideoElement) {
-          document.head.append(peer.remoteCameraVideoElement)
+          void document.head.append(peer.remoteCameraVideoElement)
         } else {
-          remoteCameraMount?.replaceChildren()
+          void remoteCameraMount?.replaceChildren()
         }
         break
       }
       case 'screen-muted': {
-        remoteScreenMount?.replaceChildren()
+        void remoteScreenMount?.replaceChildren()
         break
       }
     }
@@ -269,9 +270,11 @@ if (muteRemoteMicrophoneButton instanceof HTMLButtonElement) {
 if (shareCameraButton instanceof HTMLButtonElement) {
   void shareCameraButton.addEventListener('click', async () => {
     if (!peer) return
-    await peer.shareCamera()
+    void (await peer.shareCamera())
     if (localCameraMount && P2PConnection.localCameraVideoElement) {
-      localCameraMount.replaceChildren(P2PConnection.localCameraVideoElement)
+      void localCameraMount.replaceChildren(
+        P2PConnection.localCameraVideoElement
+      )
     }
     void peer.sendMessage({ kind: 'camera-shared' })
   })
@@ -281,7 +284,7 @@ if (stopSharingCameraButton instanceof HTMLButtonElement) {
   void stopSharingCameraButton.addEventListener('click', () => {
     if (!peer) return
     void peer.stopSharingCamera()
-    localCameraMount?.replaceChildren()
+    void localCameraMount?.replaceChildren()
     void peer.sendMessage({ kind: 'camera-muted' })
   })
 }
@@ -289,7 +292,7 @@ if (stopSharingCameraButton instanceof HTMLButtonElement) {
 if (showCameraButton instanceof HTMLButtonElement) {
   void showCameraButton.addEventListener('click', () => {
     if (remoteCameraMount && peer?.remoteCameraVideoElement) {
-      remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement)
+      void remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement)
     }
   })
 }
@@ -297,9 +300,9 @@ if (showCameraButton instanceof HTMLButtonElement) {
 if (hideCameraButton instanceof HTMLButtonElement) {
   void hideCameraButton.addEventListener('click', () => {
     if (peer?.remoteCameraVideoElement) {
-      document.head.append(peer.remoteCameraVideoElement)
+      void document.head.append(peer.remoteCameraVideoElement)
     } else {
-      remoteCameraMount?.replaceChildren()
+      void remoteCameraMount?.replaceChildren()
     }
   })
 }
@@ -309,7 +312,9 @@ if (shareScreenButton instanceof HTMLButtonElement) {
     if (!peer) return
     void (await peer.shareScreen())
     if (localScreenMount && P2PConnection.localScreenVideoElement) {
-      localScreenMount.replaceChildren(P2PConnection.localScreenVideoElement)
+      void localScreenMount.replaceChildren(
+        P2PConnection.localScreenVideoElement
+      )
     }
     void peer.sendMessage({ kind: 'screen-shared' })
   })
@@ -319,7 +324,7 @@ if (stopSharingScreenButton instanceof HTMLButtonElement) {
   void stopSharingScreenButton.addEventListener('click', () => {
     if (!peer) return
     void peer.stopSharingScreen()
-    localScreenMount?.replaceChildren()
+    void localScreenMount?.replaceChildren()
     void peer.sendMessage({ kind: 'screen-muted' })
   })
 }
@@ -327,7 +332,7 @@ if (stopSharingScreenButton instanceof HTMLButtonElement) {
 if (showScreenButton instanceof HTMLButtonElement) {
   void showScreenButton.addEventListener('click', () => {
     if (remoteScreenMount && peer?.remoteScreenVideoElement) {
-      remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement)
+      void remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement)
     }
   })
 }
@@ -335,9 +340,9 @@ if (showScreenButton instanceof HTMLButtonElement) {
 if (hideScreenButton instanceof HTMLButtonElement) {
   void hideScreenButton.addEventListener('click', () => {
     if (peer?.remoteScreenVideoElement) {
-      document.head.append(peer.remoteScreenVideoElement)
+      void document.head.append(peer.remoteScreenVideoElement)
     } else {
-      remoteScreenMount?.replaceChildren()
+      void remoteScreenMount?.replaceChildren()
     }
   })
 }
