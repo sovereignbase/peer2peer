@@ -96,7 +96,7 @@ test('unit: makeOffer and acceptOffer surface missing local descriptions', async
   const { P2PConnection } = await loadDist()
 
   await assert.rejects(
-    () => P2PConnection.makeOffer([]),
+    () => P2PConnection.makeOffer(),
     /Failed to create an offer/
   )
 
@@ -107,10 +107,10 @@ test('unit: makeOffer and acceptOffer surface missing local descriptions', async
     localDescriptionMode: 'null',
   })
 
-  const goodOffer = await P2PConnection.makeOffer([])
+  const goodOffer = await P2PConnection.makeOffer()
 
   await assert.rejects(
-    () => P2PConnection.acceptOffer(goodOffer, []),
+    () => P2PConnection.acceptOffer(goodOffer),
     /Failed to create an answer/
   )
 })
@@ -126,8 +126,8 @@ test('unit: sendMessage rejects while the RTCDataChannel is not open', async (t)
 
   const { P2PConnection } = await loadDist()
 
-  const offer = await P2PConnection.makeOffer([])
-  const copies = await P2PConnection.acceptOffer(offer, [])
+  const offer = await P2PConnection.makeOffer()
+  const copies = await P2PConnection.acceptOffer(offer)
   const offeror = new P2PConnection(copies.offeror)
 
   await flushAsyncWork()
@@ -148,8 +148,8 @@ test('unit: sendMessage rejects when no RTCDataChannel is attached yet', async (
   })
 
   const { P2PConnection } = await loadDist()
-  const offer = await P2PConnection.makeOffer([])
-  const copies = await P2PConnection.acceptOffer(offer, [])
+  const offer = await P2PConnection.makeOffer()
+  const copies = await P2PConnection.acceptOffer(offer)
   const offeree = new P2PConnection(copies.offeree)
 
   assert.throws(

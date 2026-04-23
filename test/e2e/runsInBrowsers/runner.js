@@ -79,7 +79,7 @@ function bindPeer(session, peer) {
 
 async function handleSignal(session, payload) {
   if (payload.kind === 'offer') {
-    const copies = await P2PConnection.acceptOffer(payload.offer, [])
+    const copies = await P2PConnection.acceptOffer(payload.offer)
     bindPeer(session, new P2PConnection(copies.offeree))
 
     session.socket.send(
@@ -139,7 +139,7 @@ window.__peer2peerTestKit = {
 
         if (!initiator) return
 
-        const offer = await P2PConnection.makeOffer([])
+        const offer = await P2PConnection.makeOffer()
         session.socket.send(
           JSON.stringify({
             type: 'signal',

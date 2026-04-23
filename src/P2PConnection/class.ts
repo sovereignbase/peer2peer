@@ -65,13 +65,15 @@ export class P2PConnection<T extends Record<string, unknown>> {
    * Creates a new offer and reserves the local offeror-side connection state
    * until the returned offer is later consumed by the constructor.
    *
-   * @param additionalIceServers Additional ICE servers appended after the
-   * built-in public STUN configuration.
+   * @param additionalIceServers Optional additional ICE servers appended after
+   * the built-in public STUN configuration.
    * @returns An offer that can be transported to the remote peer out-of-band.
    * @throws {P2PConnectionError} Throws `MISSING_LOCAL_DESCRIPTION` when the
    * browser does not expose the generated offer description.
    */
-  static async makeOffer(additionalIceServers: RTCIceServer[]): Promise<Offer> {
+  static async makeOffer(
+    additionalIceServers: RTCIceServer[] = []
+  ): Promise<Offer> {
     const peerConnection = new RTCPeerConnection({
       iceServers: [P2PConnection.#defaultIceServer, ...additionalIceServers],
       iceTransportPolicy: 'all',
@@ -105,15 +107,15 @@ export class P2PConnection<T extends Record<string, unknown>> {
    * two peers to finalize the connection locally.
    *
    * @param offer The remote offer to accept.
-   * @param additionalIceServers Additional ICE servers appended after the
-   * built-in public STUN configuration.
+   * @param additionalIceServers Optional additional ICE servers appended after
+   * the built-in public STUN configuration.
    * @returns The contract copies for the offeror and offeree.
    * @throws {P2PConnectionError} Throws `MISSING_LOCAL_DESCRIPTION` when the
    * browser does not expose the generated answer description.
    */
   static async acceptOffer(
     offer: Offer,
-    additionalIceServers: RTCIceServer[]
+    additionalIceServers: RTCIceServer[] = []
   ): Promise<ContractCopies> {
     const peerConnection = new RTCPeerConnection({
       iceServers: [P2PConnection.#defaultIceServer, ...additionalIceServers],

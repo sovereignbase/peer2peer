@@ -62,14 +62,12 @@ type Message = {
  * something  like an SFU, all data is e2ee via DTLS
  */
 
-const additionalIceServers: RTCIceServer[] = []
-
 // Peer A
-const offer = await P2PConnection.makeOffer(additionalIceServers)
+const offer = await P2PConnection.makeOffer()
 // send `offer` to peer B using your own transport
 
 // Peer B
-const copies = await P2PConnection.acceptOffer(offer, additionalIceServers)
+const copies = await P2PConnection.acceptOffer(offer)
 // send `copies.offeror` back to peer A
 // keep `copies.offeree` on peer B
 

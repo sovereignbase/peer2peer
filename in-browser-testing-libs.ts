@@ -163,7 +163,7 @@ if (nameInput instanceof HTMLInputElement) {
 
 if (makeOfferButton instanceof HTMLButtonElement) {
   void makeOfferButton.addEventListener('click', async () => {
-    const offer = await P2PConnection.makeOffer([])
+    const offer = await P2PConnection.makeOffer()
     const optimized = await QR.optimizeEncoding(JSON.stringify(offer))
     void QR.display(optimized)
   })
@@ -173,7 +173,7 @@ if (acceptOfferButton instanceof HTMLButtonElement) {
   void acceptOfferButton.addEventListener('click', async () => {
     const signal = await QR.scan()
     const offer = JSON.parse(await QR.restoreEncoding(signal)) as Offer
-    const { offeror, offeree } = await P2PConnection.acceptOffer(offer, [])
+    const { offeror, offeree } = await P2PConnection.acceptOffer(offer)
 
     void setupWire(new P2PConnection(offeree), messages)
     const optimized = await QR.optimizeEncoding(JSON.stringify(offeror))

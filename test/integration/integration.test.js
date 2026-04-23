@@ -46,8 +46,8 @@ async function createConnectedPair({
   })
 
   const api = await loadDist()
-  const offer = await api.P2PConnection.makeOffer([])
-  const copies = await api.P2PConnection.acceptOffer(offer, [])
+  const offer = await api.P2PConnection.makeOffer()
+  const copies = await api.P2PConnection.acceptOffer(offer)
   const offeror = new api.P2PConnection(copies.offeror)
   const offeree = new api.P2PConnection(copies.offeree)
 
@@ -259,8 +259,8 @@ test('integration: negotiationneeded is ignored when no data channel is attached
   })
 
   const { P2PConnection } = await loadDist()
-  const offer = await P2PConnection.makeOffer([])
-  const copies = await P2PConnection.acceptOffer(offer, [])
+  const offer = await P2PConnection.makeOffer()
+  const copies = await P2PConnection.acceptOffer(offer)
   const offeree = new P2PConnection(copies.offeree)
 
   offeree.peerConnection.dispatchEvent(new Event('negotiationneeded'))
@@ -285,8 +285,8 @@ test('integration: ready rejects when the peer connection fails before a data ch
   })
 
   const { P2PConnection } = await loadDist()
-  const offer = await P2PConnection.makeOffer([])
-  const copies = await P2PConnection.acceptOffer(offer, [])
+  const offer = await P2PConnection.makeOffer()
+  const copies = await P2PConnection.acceptOffer(offer)
   const offeree = new P2PConnection(copies.offeree)
 
   const readyPromise = offeree.ready()
