@@ -1,5 +1,12 @@
 import { P2PConnectionError } from '../../.errors/class.js'
 
+/**
+ * Resolves when an `RTCDataChannel` reaches the `"open"` state.
+ *
+ * @param channel The channel to observe.
+ * @throws {P2PConnectionError} Throws `CHANNEL_CLOSED` or `CHANNEL_ERROR`
+ * when the channel fails before opening.
+ */
 export function waitForChannelOpen(channel: RTCDataChannel): Promise<void> {
   if (channel.readyState === 'open') return Promise.resolve()
 
@@ -17,12 +24,22 @@ export function waitForChannelOpen(channel: RTCDataChannel): Promise<void> {
 
     const onClose = (): void => {
       void cleanup()
-      void reject(new P2PConnectionError('CHANNEL_CLOSED'))
+      void reject(
+        new P2PConnectionError(
+          'CHANNEL_CLOSED',
+          'The RTCDataChannel closed before it reached the "open" state.'
+        )
+      )
     }
 
     const onError = (): void => {
       void cleanup()
-      void reject(new P2PConnectionError('CHANNEL_ERROR'))
+      void reject(
+        new P2PConnectionError(
+          'CHANNEL_ERROR',
+          'The RTCDataChannel fired an "error" event before it reached the "open" state.'
+        )
+      )
     }
 
     void channel.addEventListener('open', onOpen)

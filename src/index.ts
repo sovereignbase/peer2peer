@@ -1,3 +1,6 @@
+/**
+ * Public entry point for the `@sovereignbase/peer2peer` package.
+ */
 export type {
   Offer,
   Contract,

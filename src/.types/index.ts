@@ -1,23 +1,65 @@
+/**
+ * Represents an offer that can be transported to a remote peer out-of-band.
+ */
 export type Offer = {
+  /**
+   * Correlates the offer and the later contract copies.
+   */
   offerId: string
+  /**
+   * The local SDP offer produced by the offeror.
+   */
   description: RTCSessionDescription
 }
 
+/**
+ * Represents the contract copy that returns to the offeror after the offeree
+ * accepts an offer.
+ */
 export type OfferorCopy = {
+  /**
+   * Correlates the contract copy back to the original offer.
+   */
   offerId: string
+  /**
+   * Identifies the local role that should consume this copy.
+   */
   role: 'offeror'
+  /**
+   * The SDP answer produced by the offeree.
+   */
   answer: RTCSessionDescription
 }
 
+/**
+ * Represents the contract copy retained by the offeree after accepting an
+ * offer.
+ */
 export type OffereeCopy = {
+  /**
+   * Correlates the contract copy back to the original offer.
+   */
   offerId: string
+  /**
+   * Identifies the local role that should consume this copy.
+   */
   role: 'offeree'
 }
 
+/**
+ * Represents either side of the out-of-band contract exchange.
+ */
 export type Contract = OfferorCopy | OffereeCopy
 
+/**
+ * Contains the pair of contract copies produced when an offer is accepted.
+ */
 export type ContractCopies = { offeror: OfferorCopy; offeree: OffereeCopy }
 
+/**
+ * Represents an internal renegotiation message exchanged over the data
+ * channel.
+ */
 export type InternalSignal =
   | {
       __sovereignbase_peer2peer: 'renegotiate-offer'
@@ -29,7 +71,8 @@ export type InternalSignal =
     }
 
 /**
- * Maps `P2PConnection` event names to their corresponding `CustomEvent.detail` payloads.
+ * Maps `P2PConnection` event names to their corresponding
+ * `CustomEvent.detail` payloads.
  */
 export type P2PConnectionEventMap<T> = {
   message: T

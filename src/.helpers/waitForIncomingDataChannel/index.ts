@@ -1,5 +1,13 @@
 import { P2PConnectionError } from '../../.errors/class.js'
 
+/**
+ * Resolves with the next incoming `RTCDataChannel`.
+ *
+ * @param peerConnection The peer connection that is expected to receive a data
+ * channel.
+ * @throws {P2PConnectionError} Throws `CHANNEL_NOT_AVAILABLE` when the peer
+ * connection closes or fails first.
+ */
 export function waitForIncomingDataChannel(
   peerConnection: RTCPeerConnection
 ): Promise<RTCDataChannel> {
@@ -23,7 +31,12 @@ export function waitForIncomingDataChannel(
         peerConnection.connectionState === 'closed'
       ) {
         void cleanup()
-        void reject(new P2PConnectionError('CHANNEL_NOT_AVAILABLE'))
+        void reject(
+          new P2PConnectionError(
+            'CHANNEL_NOT_AVAILABLE',
+            `The RTCPeerConnection entered the "${peerConnection.connectionState}" state before it emitted a "datachannel" event.`
+          )
+        )
       }
     }
 

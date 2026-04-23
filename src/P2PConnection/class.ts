@@ -20,10 +20,27 @@ import type {
   P2PConnectionEventListenerFor,
 } from '../.types/index.js'
 
+/**
+ * Provides a thin, browser-oriented wrapper around a WebRTC peer connection and
+ * its application data channel.
+ *
+ * @template T The structured payload type sent through `sendMessage()` and
+ * received via the `"message"` event.
+ */
 export class P2PConnection<T extends Record<string, unknown>> {
   static #userMediaStream: MediaStream | undefined
   static #displayMediaStream: MediaStream | undefined
+
+  /**
+   * Stores the shared local camera preview element, when camera sharing has
+   * been enabled.
+   */
   static localCameraVideoElement: HTMLVideoElement | undefined
+
+  /**
+   * Stores the shared local screen preview element, when screen sharing has
+   * been enabled.
+   */
   static localScreenVideoElement: HTMLVideoElement | undefined
 
   static #defaultIceServer: RTCIceServer = {
@@ -44,6 +61,16 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
   >()
 
+  /**
+   * Creates a new offer and reserves the local offeror-side connection state
+   * until the returned offer is later consumed by the constructor.
+   *
+   * @param additionalIceServers Additional ICE servers appended after the
+   * built-in public STUN configuration.
+   * @returns An offer that can be transported to the remote peer out-of-band.
+   * @throws {P2PConnectionError} Throws `MISSING_LOCAL_DESCRIPTION` when the
+   * browser does not expose the generated offer description.
+   */
   static async makeOffer(additionalIceServers: RTCIceServer[]): Promise<Offer> {
     const peerConnection = new RTCPeerConnection({
       iceServers: [P2PConnection.#defaultIceServer, ...additionalIceServers],
@@ -72,6 +99,18 @@ export class P2PConnection<T extends Record<string, unknown>> {
       channelPromise: Promise<RTCDataChannel>
     }
   >()
+
+  /**
+   * Accepts a remote offer and returns the paired contract copies needed by the
+   * two peers to finalize the connection locally.
+   *
+   * @param offer The remote offer to accept.
+   * @param additionalIceServers Additional ICE servers appended after the
+   * built-in public STUN configuration.
+   * @returns The contract copies for the offeror and offeree.
+   * @throws {P2PConnectionError} Throws `MISSING_LOCAL_DESCRIPTION` when the
+   * browser does not expose the generated answer description.
+   */
   static async acceptOffer(
     offer: Offer,
     additionalIceServers: RTCIceServer[]
@@ -121,9 +160,25 @@ export class P2PConnection<T extends Record<string, unknown>> {
   private remoteUserMediaStreamId: string | undefined
   private remoteDisplayMediaStreamId: string | undefined
 
+  /**
+   * References the latest remote camera element created for this connection.
+   */
   remoteCameraVideoElement: HTMLVideoElement | undefined
+
+  /**
+   * References the latest remote screen-share element created for this
+   * connection.
+   */
   remoteScreenVideoElement: HTMLVideoElement | undefined
 
+  /**
+   * Creates a live connection instance from one side of a previously exchanged
+   * contract.
+   *
+   * @param contract The contract copy for the local role.
+   * @throws {P2PConnectionError} Throws `UNKNOWN_PEER_CONTRACT` when the
+   * provided contract does not match a reserved pending or accepted offer.
+   */
   constructor(contract: Contract) {
     this.eventTarget = new EventTarget()
     this.polite = contract.role === 'offeree'
@@ -131,7 +186,11 @@ export class P2PConnection<T extends Record<string, unknown>> {
 
     if (contract.role === 'offeror') {
       const offer = P2PConnection.#pendingOffers.get(contract.offerId)
-      if (!offer) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
+      if (!offer)
+        throw new P2PConnectionError(
+          'UNKNOWN_PEER_CONTRACT',
+          `Failed to construct an offeror-side P2PConnection because no pending offer exists for offerId "${contract.offerId}".`
+        )
       this.peerConnection = offer.peerConnection
       this.channel = offer.channel
       channelPromise = Promise.resolve(offer.channel)
@@ -139,7 +198,11 @@ export class P2PConnection<T extends Record<string, unknown>> {
       void this.peerConnection.setRemoteDescription(contract.answer)
     } else {
       const offer = P2PConnection.#acceptedOffers.get(contract.offerId)
-      if (!offer) throw new P2PConnectionError('UNKNOWN_PEER_CONTRACT')
+      if (!offer)
+        throw new P2PConnectionError(
+          'UNKNOWN_PEER_CONTRACT',
+          `Failed to construct an offeree-side P2PConnection because no accepted offer exists for offerId "${contract.offerId}".`
+        )
       this.peerConnection = offer.peerConnection
       channelPromise = offer.channelPromise
       void P2PConnection.#acceptedOffers.delete(contract.offerId)
@@ -217,11 +280,22 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
   }
 
+  /**
+   * Resolves once the underlying data channel is fully open.
+   *
+   * @throws {P2PConnectionError} Throws `CHANNEL_CLOSED`, `CHANNEL_ERROR`, or
+   * `CHANNEL_NOT_AVAILABLE` if the connection fails before the channel opens.
+   */
   async ready(): Promise<void> {
     const channel = await this.channelPromise
     void (await waitForChannelOpen(channel))
   }
 
+  /**
+   * Starts sending the shared local microphone track to the remote peer.
+   *
+   * The first call lazily creates and caches the shared user-media stream.
+   */
   async shareMicrophone(): Promise<void> {
     if (!P2PConnection.#userMediaStream) {
       P2PConnection.#userMediaStream =
@@ -237,6 +311,9 @@ export class P2PConnection<T extends Record<string, unknown>> {
     )
   }
 
+  /**
+   * Stops sending the local microphone track, if one is currently attached.
+   */
   stopSharingMicrophone(): void {
     if (this.userAudioTrack) {
       void this.peerConnection.removeTrack(this.userAudioTrack)
@@ -244,6 +321,10 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
   }
 
+  /**
+   * Starts sending the shared local camera track and populates the shared local
+   * preview element.
+   */
   async shareCamera(): Promise<void> {
     if (!P2PConnection.#userMediaStream) {
       P2PConnection.#userMediaStream =
@@ -271,6 +352,9 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
   }
 
+  /**
+   * Stops sending the local camera track, if one is currently attached.
+   */
   stopSharingCamera(): void {
     if (this.userVideoTrack) {
       void this.peerConnection.removeTrack(this.userVideoTrack)
@@ -278,6 +362,10 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
   }
 
+  /**
+   * Starts sending the shared local display stream and populates the shared
+   * local preview element.
+   */
   async shareScreen(): Promise<void> {
     if (!P2PConnection.#displayMediaStream) {
       P2PConnection.#displayMediaStream =
@@ -317,6 +405,9 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
   }
 
+  /**
+   * Stops sending the local display tracks, if any are currently attached.
+   */
   stopSharingScreen(): void {
     if (this.displayVideoTrack) {
       void this.peerConnection.removeTrack(this.displayVideoTrack)
@@ -328,15 +419,34 @@ export class P2PConnection<T extends Record<string, unknown>> {
     }
   }
 
+  /**
+   * Sends an application payload over the open data channel.
+   *
+   * @param message The structured payload to encode and transmit.
+   * @throws {P2PConnectionError} Throws `CONNECTION_NOT_READY` when the data
+   * channel has not reached the `"open"` state.
+   */
   sendMessage(message: T): void {
-    if (!this.channel) throw new P2PConnectionError('CONNECTION_NOT_READY')
+    if (!this.channel || this.channel.readyState !== 'open') {
+      const stateDescription = this.channel
+        ? `in the "${this.channel.readyState}" state`
+        : 'not available yet'
+      throw new P2PConnectionError(
+        'CONNECTION_NOT_READY',
+        `Failed to execute "sendMessage" because the RTCDataChannel is ${stateDescription}.`
+      )
+    }
     void this.channel.send(encode(message))
   }
 
+  /**
+   * Closes the data channel and underlying peer connection.
+   */
   closeConnection(): void {
     if (this.channel) this.channel.close()
     void this.peerConnection.close()
   }
+
   /**
    * Registers an event listener.
    *

@@ -1,3 +1,9 @@
+/**
+ * Waits until ICE candidate gathering has completed for a peer connection.
+ *
+ * @param peerConnection The peer connection whose local ICE gathering state is
+ * observed.
+ */
 export async function waitForIceComplete(
   peerConnection: RTCPeerConnection
 ): Promise<void> {
