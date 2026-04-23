@@ -2,7 +2,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "name": "@sovereignbase/peer2peer",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Simple WebRTC wrapper for peer to peer connection setup in browsers.",
   "keywords": [
     "peer-to-peer",
