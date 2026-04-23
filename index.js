@@ -2752,16 +2752,9 @@ function unsafeStringify(arr, offset = 0) {
 }
 
 // node_modules/uuid/dist/rng.js
-var getRandomValues;
 var rnds8 = new Uint8Array(16);
 function rng() {
-  if (!getRandomValues) {
-    if (typeof crypto === "undefined" || !crypto.getRandomValues) {
-      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
-    }
-    getRandomValues = crypto.getRandomValues.bind(crypto);
-  }
-  return getRandomValues(rnds8);
+  return crypto.getRandomValues(rnds8);
 }
 
 // node_modules/uuid/dist/v7.js
@@ -5427,31 +5420,41 @@ async function waitForIceComplete(peerConnection) {
   if (peerConnection.iceGatheringState === "complete") return;
   await new Promise((resolve) => {
     const cleanup = () => {
-      peerConnection.removeEventListener(
+      void peerConnection.removeEventListener(
         "icegatheringstatechange",
         onIceGatheringStateChange
       );
-      peerConnection.removeEventListener("icecandidate", onIceCandidate);
-      resolve();
+      void peerConnection.removeEventListener("icecandidate", onIceCandidate);
+      void resolve();
     };
     const onIceGatheringStateChange = () => {
-      if (peerConnection.iceGatheringState === "complete") cleanup();
+      if (peerConnection.iceGatheringState === "complete") void cleanup();
     };
     const onIceCandidate = (event) => {
-      if (!event.candidate) cleanup();
+      if (!event.candidate) void cleanup();
     };
-    peerConnection.addEventListener(
+    void peerConnection.addEventListener(
       "icegatheringstatechange",
       onIceGatheringStateChange
     );
-    peerConnection.addEventListener("icecandidate", onIceCandidate);
+    void peerConnection.addEventListener("icecandidate", onIceCandidate);
   });
 }
 var P2PConnectionError = class extends Error {
+  /**
+   * Identifies the semantic error condition.
+   */
   code;
-  constructor(code, message) {
+  /**
+   * Creates a new `P2PConnectionError`.
+   *
+   * @param code The stable machine-readable error code.
+   * @param message A specific human-readable explanation for the current failure.
+   * @param options Standard `Error` options such as `cause`.
+   */
+  constructor(code, message, options) {
     const detail = message ?? code;
-    super(`{@sovereignbase/peer2peer} ${detail}`);
+    super(`{@sovereignbase/peer2peer} ${detail}`, options);
     this.code = code;
     this.name = "P2PConnectionError";
   }
@@ -5460,48 +5463,63 @@ function waitForChannelOpen(channel) {
   if (channel.readyState === "open") return Promise.resolve();
   return new Promise((resolve, reject) => {
     const cleanup = () => {
-      channel.removeEventListener("open", onOpen);
-      channel.removeEventListener("close", onClose);
-      channel.removeEventListener("error", onError);
+      void channel.removeEventListener("open", onOpen);
+      void channel.removeEventListener("close", onClose);
+      void channel.removeEventListener("error", onError);
     };
     const onOpen = () => {
-      cleanup();
-      resolve();
+      void cleanup();
+      void resolve();
     };
     const onClose = () => {
-      cleanup();
-      reject(new P2PConnectionError("CHANNEL_CLOSED"));
+      void cleanup();
+      void reject(
+        new P2PConnectionError(
+          "CHANNEL_CLOSED",
+          'The RTCDataChannel closed before it reached the "open" state.'
+        )
+      );
     };
     const onError = () => {
-      cleanup();
-      reject(new P2PConnectionError("CHANNEL_ERROR"));
+      void cleanup();
+      void reject(
+        new P2PConnectionError(
+          "CHANNEL_ERROR",
+          'The RTCDataChannel fired an "error" event before it reached the "open" state.'
+        )
+      );
     };
-    channel.addEventListener("open", onOpen);
-    channel.addEventListener("close", onClose);
-    channel.addEventListener("error", onError);
+    void channel.addEventListener("open", onOpen);
+    void channel.addEventListener("close", onClose);
+    void channel.addEventListener("error", onError);
   });
 }
 function waitForIncomingDataChannel(peerConnection) {
   return new Promise((resolve, reject) => {
     const cleanup = () => {
-      peerConnection.removeEventListener("datachannel", onDataChannel);
-      peerConnection.removeEventListener(
+      void peerConnection.removeEventListener("datachannel", onDataChannel);
+      void peerConnection.removeEventListener(
         "connectionstatechange",
         onConnectionStateChange
       );
     };
     const onDataChannel = (event) => {
-      cleanup();
-      resolve(event.channel);
+      void cleanup();
+      void resolve(event.channel);
     };
     const onConnectionStateChange = () => {
       if (peerConnection.connectionState === "failed" || peerConnection.connectionState === "closed") {
-        cleanup();
-        reject(new P2PConnectionError("CHANNEL_NOT_AVAILABLE"));
+        void cleanup();
+        void reject(
+          new P2PConnectionError(
+            "CHANNEL_NOT_AVAILABLE",
+            `The RTCPeerConnection entered the "${peerConnection.connectionState}" state before it emitted a "datachannel" event.`
+          )
+        );
       }
     };
-    peerConnection.addEventListener("datachannel", onDataChannel);
-    peerConnection.addEventListener(
+    void peerConnection.addEventListener("datachannel", onDataChannel);
+    void peerConnection.addEventListener(
       "connectionstatechange",
       onConnectionStateChange
     );
@@ -5511,21 +5529,31 @@ function createMediaPlayer() {
   const mediaPlayer = document.createElement("video");
   mediaPlayer.autoplay = true;
   mediaPlayer.playsInline = true;
-  document.head.append(mediaPlayer);
+  void document.head.append(mediaPlayer);
   return mediaPlayer;
 }
 async function createLocalOffer(peerConnection) {
-  await peerConnection.setLocalDescription(await peerConnection.createOffer());
-  await waitForIceComplete(peerConnection);
+  void await peerConnection.setLocalDescription(
+    await peerConnection.createOffer()
+  );
+  void await waitForIceComplete(peerConnection);
   if (!peerConnection.localDescription)
-    throw new P2PConnectionError("MISSING_LOCAL_DESCRIPTION");
+    throw new P2PConnectionError(
+      "MISSING_LOCAL_DESCRIPTION",
+      "Failed to create an offer because RTCPeerConnection.localDescription is null after ICE gathering completed."
+    );
   return peerConnection.localDescription;
 }
 async function createLocalAnswer(peerConnection) {
-  await peerConnection.setLocalDescription(await peerConnection.createAnswer());
-  await waitForIceComplete(peerConnection);
+  void await peerConnection.setLocalDescription(
+    await peerConnection.createAnswer()
+  );
+  void await waitForIceComplete(peerConnection);
   if (!peerConnection.localDescription)
-    throw new P2PConnectionError("MISSING_LOCAL_DESCRIPTION");
+    throw new P2PConnectionError(
+      "MISSING_LOCAL_DESCRIPTION",
+      "Failed to create an answer because RTCPeerConnection.localDescription is null after ICE gathering completed."
+    );
   return peerConnection.localDescription;
 }
 function isInternalSignal(value) {
@@ -5536,7 +5564,15 @@ function isInternalSignal(value) {
 var P2PConnection = class _P2PConnection {
   static #userMediaStream;
   static #displayMediaStream;
+  /**
+   * Stores the shared local camera preview element, when camera sharing has
+   * been enabled.
+   */
   static localCameraVideoElement;
+  /**
+   * Stores the shared local screen preview element, when screen sharing has
+   * been enabled.
+   */
   static localScreenVideoElement;
   static #defaultIceServer = {
     urls: [
@@ -5548,6 +5584,16 @@ var P2PConnection = class _P2PConnection {
   };
   //offeror
   static #pendingOffers = /* @__PURE__ */ new Map();
+  /**
+   * Creates a new offer and reserves the local offeror-side connection state
+   * until the returned offer is later consumed by the constructor.
+   *
+   * @param additionalIceServers Additional ICE servers appended after the
+   * built-in public STUN configuration.
+   * @returns An offer that can be transported to the remote peer out-of-band.
+   * @throws {P2PConnectionError} Throws `MISSING_LOCAL_DESCRIPTION` when the
+   * browser does not expose the generated offer description.
+   */
   static async makeOffer(additionalIceServers) {
     const peerConnection = new RTCPeerConnection({
       iceServers: [_P2PConnection.#defaultIceServer, ...additionalIceServers],
@@ -5555,7 +5601,7 @@ var P2PConnection = class _P2PConnection {
     });
     const channel = peerConnection.createDataChannel("data");
     const offerId = crypto.randomUUID();
-    _P2PConnection.#pendingOffers.set(offerId, {
+    void _P2PConnection.#pendingOffers.set(offerId, {
       peerConnection,
       channel
     });
@@ -5566,15 +5612,26 @@ var P2PConnection = class _P2PConnection {
   }
   //offeree
   static #acceptedOffers = /* @__PURE__ */ new Map();
+  /**
+   * Accepts a remote offer and returns the paired contract copies needed by the
+   * two peers to finalize the connection locally.
+   *
+   * @param offer The remote offer to accept.
+   * @param additionalIceServers Additional ICE servers appended after the
+   * built-in public STUN configuration.
+   * @returns The contract copies for the offeror and offeree.
+   * @throws {P2PConnectionError} Throws `MISSING_LOCAL_DESCRIPTION` when the
+   * browser does not expose the generated answer description.
+   */
   static async acceptOffer(offer, additionalIceServers) {
     const peerConnection = new RTCPeerConnection({
       iceServers: [_P2PConnection.#defaultIceServer, ...additionalIceServers],
       iceTransportPolicy: "all"
     });
     const channelPromise = waitForIncomingDataChannel(peerConnection);
-    await peerConnection.setRemoteDescription(offer.description);
+    void await peerConnection.setRemoteDescription(offer.description);
     const answer = await createLocalAnswer(peerConnection);
-    _P2PConnection.#acceptedOffers.set(offer.offerId, {
+    void _P2PConnection.#acceptedOffers.set(offer.offerId, {
       peerConnection,
       channelPromise
     });
@@ -5604,36 +5661,59 @@ var P2PConnection = class _P2PConnection {
   displayVideoTrack;
   remoteUserMediaStreamId;
   remoteDisplayMediaStreamId;
+  /**
+   * References the latest remote camera element created for this connection.
+   */
   remoteCameraVideoElement;
+  /**
+   * References the latest remote screen-share element created for this
+   * connection.
+   */
   remoteScreenVideoElement;
+  /**
+   * Creates a live connection instance from one side of a previously exchanged
+   * contract.
+   *
+   * @param contract The contract copy for the local role.
+   * @throws {P2PConnectionError} Throws `UNKNOWN_PEER_CONTRACT` when the
+   * provided contract does not match a reserved pending or accepted offer.
+   */
   constructor(contract) {
     this.eventTarget = new EventTarget();
     this.polite = contract.role === "offeree";
     let channelPromise;
     if (contract.role === "offeror") {
       const offer = _P2PConnection.#pendingOffers.get(contract.offerId);
-      if (!offer) throw new P2PConnectionError("UNKNOWN_PEER_CONTRACT");
+      if (!offer)
+        throw new P2PConnectionError(
+          "UNKNOWN_PEER_CONTRACT",
+          `Failed to construct an offeror-side P2PConnection because no pending offer exists for offerId "${contract.offerId}".`
+        );
       this.peerConnection = offer.peerConnection;
       this.channel = offer.channel;
       channelPromise = Promise.resolve(offer.channel);
-      _P2PConnection.#pendingOffers.delete(contract.offerId);
+      void _P2PConnection.#pendingOffers.delete(contract.offerId);
       void this.peerConnection.setRemoteDescription(contract.answer);
     } else {
       const offer = _P2PConnection.#acceptedOffers.get(contract.offerId);
-      if (!offer) throw new P2PConnectionError("UNKNOWN_PEER_CONTRACT");
+      if (!offer)
+        throw new P2PConnectionError(
+          "UNKNOWN_PEER_CONTRACT",
+          `Failed to construct an offeree-side P2PConnection because no accepted offer exists for offerId "${contract.offerId}".`
+        );
       this.peerConnection = offer.peerConnection;
       channelPromise = offer.channelPromise;
-      _P2PConnection.#acceptedOffers.delete(contract.offerId);
+      void _P2PConnection.#acceptedOffers.delete(contract.offerId);
     }
     this.channelPromise = channelPromise.then((channel) => {
       this.channel = channel;
       void this.channel.addEventListener("message", async ({ data }) => {
         const detail = decode(data);
         if (isInternalSignal(detail)) {
-          await this.handleInternalSignal(detail);
+          void await this.handleInternalSignal(detail);
           return;
         }
-        this.eventTarget.dispatchEvent(
+        void this.eventTarget.dispatchEvent(
           new CustomEvent("message", { detail })
         );
       });
@@ -5643,7 +5723,7 @@ var P2PConnection = class _P2PConnection {
       void this.peerConnection.addEventListener(
         "negotiationneeded",
         async () => {
-          await this.handleNegotiationNeeded();
+          void await this.handleNegotiationNeeded();
         }
       );
       void this.peerConnection.addEventListener("track", (ev) => {
@@ -5655,7 +5735,7 @@ var P2PConnection = class _P2PConnection {
           }
           this.remoteCameraVideoElement.srcObject = stream;
           void this.remoteCameraVideoElement.play();
-          this.eventTarget.dispatchEvent(
+          void this.eventTarget.dispatchEvent(
             new CustomEvent("camera", {
               detail: this.remoteCameraVideoElement
             })
@@ -5669,7 +5749,7 @@ var P2PConnection = class _P2PConnection {
           }
           this.remoteScreenVideoElement.srcObject = stream;
           void this.remoteScreenVideoElement.play();
-          this.eventTarget.dispatchEvent(
+          void this.eventTarget.dispatchEvent(
             new CustomEvent("screen", {
               detail: this.remoteScreenVideoElement
             })
@@ -5678,10 +5758,21 @@ var P2PConnection = class _P2PConnection {
       });
     }
   }
+  /**
+   * Resolves once the underlying data channel is fully open.
+   *
+   * @throws {P2PConnectionError} Throws `CHANNEL_CLOSED`, `CHANNEL_ERROR`, or
+   * `CHANNEL_NOT_AVAILABLE` if the connection fails before the channel opens.
+   */
   async ready() {
     const channel = await this.channelPromise;
-    await waitForChannelOpen(channel);
+    void await waitForChannelOpen(channel);
   }
+  /**
+   * Starts sending the shared local microphone track to the remote peer.
+   *
+   * The first call lazily creates and caches the shared user-media stream.
+   */
   async shareMicrophone() {
     if (!_P2PConnection.#userMediaStream) {
       _P2PConnection.#userMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -5693,12 +5784,19 @@ var P2PConnection = class _P2PConnection {
       _P2PConnection.#userMediaStream
     );
   }
+  /**
+   * Stops sending the local microphone track, if one is currently attached.
+   */
   stopSharingMicrophone() {
     if (this.userAudioTrack) {
-      this.peerConnection.removeTrack(this.userAudioTrack);
+      void this.peerConnection.removeTrack(this.userAudioTrack);
       this.userAudioTrack = void 0;
     }
   }
+  /**
+   * Starts sending the shared local camera track and populates the shared local
+   * preview element.
+   */
   async shareCamera() {
     if (!_P2PConnection.#userMediaStream) {
       _P2PConnection.#userMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -5721,12 +5819,19 @@ var P2PConnection = class _P2PConnection {
       void _P2PConnection.localCameraVideoElement.play();
     }
   }
+  /**
+   * Stops sending the local camera track, if one is currently attached.
+   */
   stopSharingCamera() {
     if (this.userVideoTrack) {
-      this.peerConnection.removeTrack(this.userVideoTrack);
+      void this.peerConnection.removeTrack(this.userVideoTrack);
       this.userVideoTrack = void 0;
     }
   }
+  /**
+   * Starts sending the shared local display stream and populates the shared
+   * local preview element.
+   */
   async shareScreen() {
     if (!_P2PConnection.#displayMediaStream) {
       _P2PConnection.#displayMediaStream = await navigator.mediaDevices.getDisplayMedia({
@@ -5760,6 +5865,9 @@ var P2PConnection = class _P2PConnection {
       void _P2PConnection.localScreenVideoElement.play();
     }
   }
+  /**
+   * Stops sending the local display tracks, if any are currently attached.
+   */
   stopSharingScreen() {
     if (this.displayVideoTrack) {
       void this.peerConnection.removeTrack(this.displayVideoTrack);
@@ -5770,13 +5878,29 @@ var P2PConnection = class _P2PConnection {
       this.displayAudioTrack = void 0;
     }
   }
+  /**
+   * Sends an application payload over the open data channel.
+   *
+   * @param message The structured payload to encode and transmit.
+   * @throws {P2PConnectionError} Throws `CONNECTION_NOT_READY` when the data
+   * channel has not reached the `"open"` state.
+   */
   sendMessage(message) {
-    if (!this.channel) throw new P2PConnectionError("CONNECTION_NOT_READY");
-    this.channel.send(encode2(message));
+    if (!this.channel || this.channel.readyState !== "open") {
+      const stateDescription = this.channel ? `in the "${this.channel.readyState}" state` : "not available yet";
+      throw new P2PConnectionError(
+        "CONNECTION_NOT_READY",
+        `Failed to execute "sendMessage" because the RTCDataChannel is ${stateDescription}.`
+      );
+    }
+    void this.channel.send(encode2(message));
   }
+  /**
+   * Closes the data channel and underlying peer connection.
+   */
   closeConnection() {
     if (this.channel) this.channel.close();
-    this.peerConnection.close();
+    void this.peerConnection.close();
   }
   /**
    * Registers an event listener.
@@ -5786,7 +5910,7 @@ var P2PConnection = class _P2PConnection {
    * @param options Listener registration options.
    */
   addEventListener(type, listener, options) {
-    this.eventTarget.addEventListener(
+    void this.eventTarget.addEventListener(
       type,
       listener,
       options
@@ -5800,7 +5924,7 @@ var P2PConnection = class _P2PConnection {
    * @param options Listener removal options.
    */
   removeEventListener(type, listener, options) {
-    this.eventTarget.removeEventListener(
+    void this.eventTarget.removeEventListener(
       type,
       listener,
       options
@@ -5808,15 +5932,15 @@ var P2PConnection = class _P2PConnection {
   }
   async sendInternalSignal(signal) {
     const channel = await this.channelPromise;
-    await waitForChannelOpen(channel);
-    channel.send(encode2(signal));
+    void await waitForChannelOpen(channel);
+    void channel.send(encode2(signal));
   }
   async handleNegotiationNeeded() {
     if (!this.channel) return;
     try {
       this.makingOffer = true;
       const description = await createLocalOffer(this.peerConnection);
-      await this.sendInternalSignal({
+      void await this.sendInternalSignal({
         __sovereignbase_peer2peer: "renegotiate-offer",
         description: description.toJSON()
       });
@@ -5830,11 +5954,11 @@ var P2PConnection = class _P2PConnection {
     this.ignoreOffer = !this.polite && offerCollision;
     if (this.ignoreOffer) return;
     this.isSettingRemoteAnswerPending = signal.__sovereignbase_peer2peer === "renegotiate-answer";
-    await this.peerConnection.setRemoteDescription(signal.description);
+    void await this.peerConnection.setRemoteDescription(signal.description);
     this.isSettingRemoteAnswerPending = false;
     if (signal.__sovereignbase_peer2peer === "renegotiate-offer") {
       const description = await createLocalAnswer(this.peerConnection);
-      await this.sendInternalSignal({
+      void await this.sendInternalSignal({
         __sovereignbase_peer2peer: "renegotiate-answer",
         description: description.toJSON()
       });
@@ -5865,6 +5989,8 @@ var unmuteRemoteMicrophoneButton = document.getElementById(
 var muteRemoteMicrophoneButton = document.getElementById(
   "muteRemoteMicrophone"
 );
+var localCameraMount = document.getElementById("localCameraMount");
+var remoteCameraMount = document.getElementById("remoteCameraMount");
 var shareCameraButton = document.getElementById("shareCamera");
 var stopSharingCameraButton = document.getElementById("stopSharingCamera");
 var showCameraButton = document.getElementById("showCamera");
@@ -5873,8 +5999,6 @@ var shareScreenButton = document.getElementById("shareScreen");
 var stopSharingScreenButton = document.getElementById("stopSharingScreen");
 var showScreenButton = document.getElementById("showScreen");
 var hideScreenButton = document.getElementById("hideScreen");
-var localCameraMount = document.getElementById("localCameraMount");
-var remoteCameraMount = document.getElementById("remoteCameraMount");
 var localScreenMount = document.getElementById("localScreenMount");
 var remoteScreenMount = document.getElementById("remoteScreenMount");
 function appendMessage(message) {
@@ -5919,13 +6043,13 @@ function setupWire(connection, messages2) {
       }
       case "camera-shared": {
         if (remoteCameraMount && peer?.remoteCameraVideoElement) {
-          remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement);
+          void remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement);
         }
         break;
       }
       case "screen-shared": {
         if (remoteScreenMount && peer?.remoteScreenVideoElement) {
-          remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement);
+          void remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement);
         }
         break;
       }
@@ -5937,14 +6061,14 @@ function setupWire(connection, messages2) {
       }
       case "camera-muted": {
         if (peer?.remoteCameraVideoElement) {
-          document.head.append(peer.remoteCameraVideoElement);
+          void document.head.append(peer.remoteCameraVideoElement);
         } else {
-          remoteCameraMount?.replaceChildren();
+          void remoteCameraMount?.replaceChildren();
         }
         break;
       }
       case "screen-muted": {
-        remoteScreenMount?.replaceChildren();
+        void remoteScreenMount?.replaceChildren();
         break;
       }
     }
@@ -6041,9 +6165,11 @@ if (muteRemoteMicrophoneButton instanceof HTMLButtonElement) {
 if (shareCameraButton instanceof HTMLButtonElement) {
   void shareCameraButton.addEventListener("click", async () => {
     if (!peer) return;
-    await peer.shareCamera();
+    void await peer.shareCamera();
     if (localCameraMount && P2PConnection.localCameraVideoElement) {
-      localCameraMount.replaceChildren(P2PConnection.localCameraVideoElement);
+      void localCameraMount.replaceChildren(
+        P2PConnection.localCameraVideoElement
+      );
     }
     void peer.sendMessage({ kind: "camera-shared" });
   });
@@ -6052,23 +6178,23 @@ if (stopSharingCameraButton instanceof HTMLButtonElement) {
   void stopSharingCameraButton.addEventListener("click", () => {
     if (!peer) return;
     void peer.stopSharingCamera();
-    localCameraMount?.replaceChildren();
+    void localCameraMount?.replaceChildren();
     void peer.sendMessage({ kind: "camera-muted" });
   });
 }
 if (showCameraButton instanceof HTMLButtonElement) {
   void showCameraButton.addEventListener("click", () => {
     if (remoteCameraMount && peer?.remoteCameraVideoElement) {
-      remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement);
+      void remoteCameraMount.replaceChildren(peer.remoteCameraVideoElement);
     }
   });
 }
 if (hideCameraButton instanceof HTMLButtonElement) {
   void hideCameraButton.addEventListener("click", () => {
     if (peer?.remoteCameraVideoElement) {
-      document.head.append(peer.remoteCameraVideoElement);
+      void document.head.append(peer.remoteCameraVideoElement);
     } else {
-      remoteCameraMount?.replaceChildren();
+      void remoteCameraMount?.replaceChildren();
     }
   });
 }
@@ -6077,7 +6203,9 @@ if (shareScreenButton instanceof HTMLButtonElement) {
     if (!peer) return;
     void await peer.shareScreen();
     if (localScreenMount && P2PConnection.localScreenVideoElement) {
-      localScreenMount.replaceChildren(P2PConnection.localScreenVideoElement);
+      void localScreenMount.replaceChildren(
+        P2PConnection.localScreenVideoElement
+      );
     }
     void peer.sendMessage({ kind: "screen-shared" });
   });
@@ -6086,23 +6214,23 @@ if (stopSharingScreenButton instanceof HTMLButtonElement) {
   void stopSharingScreenButton.addEventListener("click", () => {
     if (!peer) return;
     void peer.stopSharingScreen();
-    localScreenMount?.replaceChildren();
+    void localScreenMount?.replaceChildren();
     void peer.sendMessage({ kind: "screen-muted" });
   });
 }
 if (showScreenButton instanceof HTMLButtonElement) {
   void showScreenButton.addEventListener("click", () => {
     if (remoteScreenMount && peer?.remoteScreenVideoElement) {
-      remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement);
+      void remoteScreenMount.replaceChildren(peer.remoteScreenVideoElement);
     }
   });
 }
 if (hideScreenButton instanceof HTMLButtonElement) {
   void hideScreenButton.addEventListener("click", () => {
     if (peer?.remoteScreenVideoElement) {
-      document.head.append(peer.remoteScreenVideoElement);
+      void document.head.append(peer.remoteScreenVideoElement);
     } else {
-      remoteScreenMount?.replaceChildren();
+      void remoteScreenMount?.replaceChildren();
     }
   });
 }

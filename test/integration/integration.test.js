@@ -100,7 +100,9 @@ test('integration: connects peers, exchanges messages, shares media, and renegot
   assert.deepEqual(offereeMessages, [{ from: 'offeror', text: 'hello' }])
   assert.deepEqual(removedListenerMessages, [])
 
-  runtime.queueUserMedia(createMediaStream({ audio: 1, video: 1, id: 'user-1' }))
+  runtime.queueUserMedia(
+    createMediaStream({ audio: 1, video: 1, id: 'user-1' })
+  )
   runtime.queueDisplayMedia(
     createMediaStream({ audio: 1, video: 1, id: 'display-1' })
   )
@@ -159,7 +161,10 @@ test('integration: track events without streams fall back to a synthetic MediaSt
   )
   await flushAsyncWork()
 
-  assert.equal(offeree.remoteCameraVideoElement?.srcObject instanceof MediaStream, true)
+  assert.equal(
+    offeree.remoteCameraVideoElement?.srcObject instanceof MediaStream,
+    true
+  )
 })
 
 test('integration: share methods tolerate missing tracks and idle stop calls', async (t) => {
@@ -172,7 +177,9 @@ test('integration: share methods tolerate missing tracks and idle stop calls', a
   offeror.stopSharingCamera()
   offeror.stopSharingScreen()
 
-  runtime.queueUserMedia(createMediaStream({ audio: 0, video: 0, id: 'empty-user' }))
+  runtime.queueUserMedia(
+    createMediaStream({ audio: 0, video: 0, id: 'empty-user' })
+  )
   runtime.queueDisplayMedia(
     createMediaStream({ audio: 0, video: 0, id: 'empty-display' })
   )
@@ -207,7 +214,10 @@ test('integration: negotiationneeded is ignored when no data channel is attached
   const readyPromise = offeree.ready()
   offeree.closeConnection()
 
-  await assert.rejects(() => readyPromise, /RTCDataChannel became available/)
+  await assert.rejects(
+    () => readyPromise,
+    /entered the "closed" state before it emitted a "datachannel" event/
+  )
 })
 
 test('integration: ready rejects when the peer connection fails before a data channel arrives', async (t) => {
@@ -244,6 +254,7 @@ test('integration: ready rejects when the data channel closes before opening', a
   })
 
   const readyPromise = offeror.ready()
+  await flushAsyncWork()
   offeror.channel.close()
 
   await assert.rejects(
@@ -263,6 +274,7 @@ test('integration: ready rejects when the data channel errors before opening', a
   })
 
   const readyPromise = offeror.ready()
+  await flushAsyncWork()
   offeror.channel.fail()
 
   await assert.rejects(
@@ -296,5 +308,8 @@ test('integration: impolite peers ignore colliding renegotiation offers', async 
 
   await flushAsyncWork()
 
-  assert.equal(offeror.peerConnection.remoteDescription, originalRemoteDescription)
+  assert.equal(
+    offeror.peerConnection.remoteDescription,
+    originalRemoteDescription
+  )
 })

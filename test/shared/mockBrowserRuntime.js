@@ -47,7 +47,8 @@ function createDescription(type, ownerId, phase = 'initial') {
 function normalizeDescription(description, fallbackOwnerId) {
   return {
     type: description.type,
-    sdp: description.sdp ?? `${description.type}:${fallbackOwnerId ?? 'remote'}`,
+    sdp:
+      description.sdp ?? `${description.type}:${fallbackOwnerId ?? 'remote'}`,
     ownerId: description.ownerId ?? fallbackOwnerId ?? 'remote',
     phase: description.phase ?? 'initial',
     toJSON() {
@@ -208,9 +209,10 @@ export class FakeRTCPeerConnection extends EventTarget {
   }
 
   async createAnswer() {
-    const phase = this.remoteDescription?.phase === 'renegotiate'
-      ? 'renegotiate'
-      : 'initial'
+    const phase =
+      this.remoteDescription?.phase === 'renegotiate'
+        ? 'renegotiate'
+        : 'initial'
     return createDescription('answer', this.id, phase)
   }
 
@@ -254,7 +256,9 @@ export class FakeRTCPeerConnection extends EventTarget {
       normalized.phase === 'initial' &&
       !this.remotePeer
     ) {
-      const offeror = FakeRTCPeerConnection.instancesById.get(normalized.ownerId)
+      const offeror = FakeRTCPeerConnection.instancesById.get(
+        normalized.ownerId
+      )
 
       if (
         offeror &&
@@ -364,11 +368,7 @@ function setGlobal(name, value, originals) {
   })
 }
 
-export function createMediaStream({
-  audio = 1,
-  video = 1,
-  id,
-} = {}) {
+export function createMediaStream({ audio = 1, video = 1, id } = {}) {
   const tracks = []
 
   for (let index = 0; index < audio; index += 1) {

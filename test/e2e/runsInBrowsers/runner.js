@@ -88,13 +88,7 @@ async function handleSignal(session, payload) {
 }
 
 window.__peer2peerTestKit = {
-  async createSession({
-    sessionId,
-    roomId,
-    peerId,
-    remotePeerId,
-    initiator,
-  }) {
+  async createSession({ sessionId, roomId, peerId, remotePeerId, initiator }) {
     const ready = createDeferred()
     const session = {
       createdAt: performance.now(),
@@ -152,7 +146,11 @@ window.__peer2peerTestKit = {
 
   async waitForReady(sessionId, timeoutMs = 5000) {
     const session = sessions.get(sessionId)
-    return createTimeout(session.ready.promise, timeoutMs, `session ${sessionId}`)
+    return createTimeout(
+      session.ready.promise,
+      timeoutMs,
+      `session ${sessionId}`
+    )
   },
 
   async sendMessage(sessionId, message) {
