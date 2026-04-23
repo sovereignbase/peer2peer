@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>ANBS peer to peer connection module specification.</title>
+    <title>ANBS peer to peer module specification.</title>
     <meta name="color-scheme" content="dark" />
     <script
       src="https://www.w3.org/Tools/respec/respec-w3c"
@@ -67,10 +67,11 @@
   <body>
     <section id="abstract">
       <p>
-        ANBS peer to peer connection module wraps host-provided WebRTC
-        primitives to create transportable offer and contract values, establish
-        a data channel between two peers, exchange structured application
-        messages, and optionally share microphone, camera, and screen media.
+        This specification defines an abstraction for establishing and operating
+        a direct peer-to-peer connection between two participants. It defines
+        the offer-and-contract exchange, the connection lifecycle, application
+        message transfer, media publication, media observation, failure
+        conditions, and automatic renegotiation.
       </p>
     </section>
     <section id="sotd">
@@ -78,7 +79,7 @@
         This specification is maintained alongside a reference implementation.
       </p>
 
-      <p>Check the reference implementation docs:</p>
+      <p>You can check the reference implementation docs:</p>
 
       <ul>
         <li>
@@ -89,70 +90,122 @@
       <p>Or use the reference implementation:</p>
       <ul>
         <li>
-          <a
-            href="https://www.npmjs.com/package/@sovereignbase/convergent-replicated-list"
+          <a href="https://www.npmjs.com/package/@sovereignbase/peer2peer"
             >NPM Registry
           </a>
         </li>
         <li>
-          <a href="https://jsr.io/@sovereignbase/convergent-replicated-list"
-            >JSR Registry
-          </a>
+          <a href="https://jsr.io/@sovereignbase/peer2peer">JSR Registry </a>
         </li>
       </ul>
     </section>
     <section class="informative">
       <h2>Introduction</h2>
       <p>
-        The module provides an abstraction over peer connections and data
-        channels as defined by [[WEBRTC]]. Instead of bundling a signaling
-        transport, it produces serializable values that callers move through
-        their own signaling channel, such as WebSocket, HTTP, QR, copy-paste, or
-        any other transport.
+        The abstraction defined here is built on the peer connection, data
+        channel, session description, and media-capture concepts defined by
+        [[WEBRTC]], [[MEDIACAPTURE_STREAMS]], and [[SCREEN_CAPTURE]].
       </p>
       <p>
-        After two peers exchange an offer and the resulting contract copies,
-        each side constructs a live connection abstraction from one contract
-        copy. The connection abstraction exposes operations for readiness,
-        application messages,media publishing, and remote media observation .
-        Media capture is built on user-media facilities from
-        [[MEDIACAPTURE_STREAMS]] and display-capture facilities from
-        [[SCREEN_CAPTURE]].
+        One participant creates an offer. The other participant accepts that
+        offer and returns a corresponding answer inside a role-specific contract
+        copy. Once each participant holds the appropriate contract copy, each
+        participant can construct a live connection and exchange application
+        messages over a data channel.
       </p>
-      <aside class="note" title="Signaling is out of scope">
+      <aside class="note" title="Signaling Is Out of Scope">
         <p>
-          This specification does not define any wire protocol for moving
-          offers, answers, or contract copies between peers. The application or
-          embedding system is responsible for that transport.
+          This specification does not define how offers, answers, or contract
+          copies are transported between participants.
         </p>
       </aside>
     </section>
-    <section class="conformance">
+    <section>
       <h2>Conformance</h2>
-
       <p>
-        A conforming implementation of an ANBS peer to peer connection module
-        MUST expose the concepts, operations, values, and observable behavior
-        defined in this document in a form natural to the host language and
-        runtime. Unless stated otherwise, lists, strings, maps, and similar
-        structural terms are to be interpreted consistently with [[INFRA]].
+        The key words <em>MUST</em>, <em>MUST NOT</em>, <em>SHOULD</em>,
+        <em>SHOULD NOT</em>, and <em>MAY</em> in this document are to be
+        interpreted as described in RFC 2119.
       </p>
       <p>
-        Operation names such as <code>makeOffer</code>,
-        <code>acceptOffer</code>, <code>ready</code>, and
-        <code>sendMessage</code> identify abstract package operations. A binding
-        MAY expose those operations as methods, functions, procedures, traits,
-        services, modules, or any equivalent host-language construct, provided
-        the specified behavior is preserved.
+        A conforming implementation MUST exhibit the behavior defined in this
+        document. Unless stated otherwise, structural terms such as list, map,
+        string, and record are to be interpreted consistently with [[INFRA]].
       </p>
     </section>
     <section>
-      <h2>Data Records</h2>
+      <h2>Core Concepts</h2>
+      <table class="simple">
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>peer</code></td>
+            <td>One of the two participants in a connection.</td>
+          </tr>
+          <tr>
+            <td><code>offeror</code></td>
+            <td>The peer that creates an offer.</td>
+          </tr>
+          <tr>
+            <td><code>offeree</code></td>
+            <td>The peer that accepts an offer.</td>
+          </tr>
+          <tr>
+            <td><code>offer identifier</code></td>
+            <td>
+              A text value that correlates an offer with the contract copies
+              derived from that offer.
+            </td>
+          </tr>
+          <tr>
+            <td><code>connection</code></td>
+            <td>
+              A live association built from one role-specific contract copy.
+            </td>
+          </tr>
+          <tr>
+            <td><code>application message</code></td>
+            <td>
+              Any MessagePack-encodable value that is not a reserved internal
+              signal.
+            </td>
+          </tr>
+          <tr>
+            <td><code>presentation handle</code></td>
+            <td>
+              An implementation-defined value that represents a renderable view
+              of visual media.
+            </td>
+          </tr>
+          <tr>
+            <td><code>polite peer</code></td>
+            <td>
+              The peer that yields during renegotiation glare. The offeree is
+              the polite peer.
+            </td>
+          </tr>
+          <tr>
+            <td><code>impolite peer</code></td>
+            <td>
+              The peer that may ignore a colliding renegotiation offer. The
+              offeror is the impolite peer.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Data Model</h2>
       <section>
         <h3>Offer</h3>
         <p>
           An <code>Offer</code> record transports the local session description
-          generated by one peer.
+          created by the offeror.
         </p>
         <table class="simple">
           <thead>
@@ -165,66 +218,95 @@
           <tbody>
             <tr>
               <td><code>offerId</code></td>
-              <td>Text string</td>
-              <td>
-                Correlation identifier generated using a host UUID facility.
-              </td>
+              <td>String</td>
+              <td>The offer identifier.</td>
             </tr>
             <tr>
               <td><code>description</code></td>
-              <td>Host WebRTC session-description value</td>
-              <td>Local SDP offer after ICE gathering has completed.</td>
+              <td>Session description</td>
+              <td>
+                The local offer description after ICE gathering completes.
+              </td>
             </tr>
           </tbody>
         </table>
       </section>
       <section>
-        <h3>Contract Copies</h3>
-        <p>
-          Accepting an offer produces two contract copies. One copy returns to
-          the original offer creator, and the other remains on the accepting
-          peer.
-        </p>
+        <h3>Offeror Contract Copy</h3>
         <table class="simple">
           <thead>
             <tr>
-              <th>Record</th>
-              <th>Members</th>
+              <th>Member</th>
+              <th>Type</th>
               <th>Meaning</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><code>OfferorCopy</code></td>
-              <td>
-                <code>offerId</code>, <code>role</code>,
-                <code>answer</code>
-              </td>
-              <td>
-                Returned to the original offer creator. The
-                <code>role</code> member MUST equal <code>"offeror"</code>.
-              </td>
+              <td><code>offerId</code></td>
+              <td>String</td>
+              <td>The offer identifier.</td>
             </tr>
             <tr>
-              <td><code>OffereeCopy</code></td>
-              <td><code>offerId</code>, <code>role</code></td>
-              <td>
-                Retained by the accepting peer. The <code>role</code> member
-                MUST equal <code>"offeree"</code>.
-              </td>
+              <td><code>role</code></td>
+              <td>String</td>
+              <td>The literal value <code>"offeror"</code>.</td>
             </tr>
+            <tr>
+              <td><code>answer</code></td>
+              <td>Session description</td>
+              <td>The local answer created by the offeree.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section>
+        <h3>Offeree Contract Copy</h3>
+        <table class="simple">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Type</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>offerId</code></td>
+              <td>String</td>
+              <td>The offer identifier.</td>
+            </tr>
+            <tr>
+              <td><code>role</code></td>
+              <td>String</td>
+              <td>The literal value <code>"offeree"</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section>
+        <h3>Contract and Contract Copies</h3>
+        <table class="simple">
+          <thead>
+            <tr>
+              <th>Concept</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
             <tr>
               <td><code>Contract</code></td>
               <td>
-                Union of <code>OfferorCopy</code> and
-                <code>OffereeCopy</code>
+                Either an offeror contract copy or an offeree contract copy.
               </td>
-              <td>Input to the connection-construction operation.</td>
             </tr>
             <tr>
               <td><code>ContractCopies</code></td>
-              <td><code>offeror</code>, <code>offeree</code></td>
-              <td>Pair returned by <code>acceptOffer()</code>.</td>
+              <td>
+                A record with members <code>offeror</code> and
+                <code>offeree</code>, containing the two role-specific contract
+                copies derived from one accepted offer.
+              </td>
             </tr>
           </tbody>
         </table>
@@ -232,8 +314,8 @@
       <section>
         <h3>Reserved Internal Signal</h3>
         <p>
-          The package reserves the following message shape for internal
-          renegotiation traffic carried over the data channel:
+          The following record shape is reserved for internal renegotiation
+          traffic carried over the data channel:
         </p>
         <pre class="js">
 {
@@ -242,29 +324,68 @@
 }
         </pre>
         <p>
-          Application payloads that match this shape are consumed internally and
-          are not surfaced as ordinary application-message events.
+          A received payload that matches this shape MUST be processed as an
+          internal signal rather than as an application message.
         </p>
       </section>
     </section>
     <section>
-      <h2>Error Model</h2>
+      <h2>Reserved State</h2>
       <p>
-        Package-defined guard failures use <code>P2PConnectionError</code>. The
-        abstraction exposes a stable <code>code</code> value whose value is one
-        of the <code>P2PConnectionErrorCode</code> literals.
+        A conforming implementation MUST maintain the following reserved state:
       </p>
+      <table class="simple">
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>pending offers</code></td>
+            <td>
+              A map from offer identifier to a reserved peer connection and its
+              locally created data channel.
+            </td>
+          </tr>
+          <tr>
+            <td><code>accepted offers</code></td>
+            <td>
+              A map from offer identifier to a reserved peer connection and a
+              pending incoming data channel.
+            </td>
+          </tr>
+          <tr>
+            <td><code>shared user-media source</code></td>
+            <td>
+              A cached media source reused by microphone and camera publication.
+            </td>
+          </tr>
+          <tr>
+            <td><code>shared display-media source</code></td>
+            <td>A cached media source reused by screen publication.</td>
+          </tr>
+          <tr>
+            <td><code>shared local camera presentation</code></td>
+            <td>
+              A shared presentation handle associated with local camera media.
+            </td>
+          </tr>
+          <tr>
+            <td><code>shared local screen presentation</code></td>
+            <td>
+              A shared presentation handle associated with local screen media.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    <section>
+      <h2>Failure Model</h2>
       <p>
-        A <code>P2PConnectionError</code> message MUST be prefixed with the
-        package scope string <code>{@sovereignbase/peer2peer}</code>. When a
-        specific message is not supplied, the code itself is used as the error
-        detail.
-      </p>
-      <p>
-        A binding MAY expose this failure abstraction as an exception type, an
-        error object, a tagged result variant, or any equivalent host-language
-        error mechanism, provided the stable code and message behavior are
-        preserved.
+        Failures defined by this abstraction use <code>P2PConnectionError</code>
+        with one of the following stable codes:
       </p>
       <table class="simple">
         <thead>
@@ -293,47 +414,42 @@
             <td>
               The peer connection reached <code>"failed"</code> or
               <code>"closed"</code> before an incoming data channel was
-              received.
+              observed.
             </td>
           </tr>
           <tr>
             <td><code>CONNECTION_NOT_READY</code></td>
             <td>
-              <code>sendMessage()</code> was invoked before the local data
-              channel was available and open.
+              An application message was sent before the data channel was
+              available and open.
             </td>
           </tr>
           <tr>
             <td><code>UNKNOWN_PEER_CONTRACT</code></td>
             <td>
-              The connection-construction operation received a contract whose
-              reserved local state had not been created or had already been
-              consumed.
+              Connection construction was attempted with a contract whose
+              reserved local state did not exist.
             </td>
           </tr>
           <tr>
             <td><code>MISSING_LOCAL_DESCRIPTION</code></td>
             <td>
-              An offer or answer could not be read from the host peer
-              connection's local-description slot after ICE gathering completed.
+              A local offer or answer description was absent after ICE gathering
+              completed.
             </td>
           </tr>
         </tbody>
       </table>
-      <aside class="note">
-        <p>
-          Host-environment failures, such as offer creation, remote description
-          application, user-media capture, or display capture rejections, are
-          not wrapped by the package and may propagate as host-defined
-          exceptions or failure values.
-        </p>
-      </aside>
+      <p>
+        A <code>P2PConnectionError</code> message MUST be prefixed with
+        <code>{@sovereignbase/peer2peer}</code>.
+      </p>
     </section>
     <section>
-      <h2>Event Model</h2>
+      <h2>Notification Model</h2>
       <p>
-        Each connection instance defines a connection-scoped notification
-        surface. The package-defined event kinds are listed below.
+        Each connection exposes a connection-scoped notification surface with
+        the following event kinds:
       </p>
       <table class="simple">
         <thead>
@@ -346,156 +462,97 @@
         <tbody>
           <tr>
             <td><code>message</code></td>
-            <td>Decoded application payload</td>
+            <td>Decoded application message</td>
             <td>
-              When the data channel receives a MessagePack payload that does not
-              match the reserved internal-signal shape.
+              When a received MessagePack payload does not match the reserved
+              internal-signal shape.
             </td>
           </tr>
           <tr>
             <td><code>camera</code></td>
-            <td>Remote camera preview handle</td>
+            <td>Presentation handle</td>
             <td>
-              When an incoming track is classified as remote user-media and the
-              remote camera preview handle is updated.
+              When remote user-media is associated with a camera presentation.
             </td>
           </tr>
           <tr>
             <td><code>screen</code></td>
-            <td>Remote screen preview handle</td>
+            <td>Presentation handle</td>
             <td>
-              When an incoming track is classified as remote display media and
-              the remote screen preview handle is updated.
+              When remote display media is associated with a screen
+              presentation.
             </td>
           </tr>
         </tbody>
       </table>
-      <p>
-        A binding MAY implement these notifications using DOM events, callbacks,
-        listener registration methods, observer streams, channels, or any
-        equivalent host-language event mechanism. The exported helper types
-        <code>P2PConnectionEventMap</code>,
-        <code>P2PConnectionEventListener</code>, and
-        <code>P2PConnectionEventListenerFor</code> are one possible typing
-        expression of this model and do not define additional runtime behavior.
-      </p>
     </section>
     <section>
-      <h2>Connection Abstraction</h2>
-      <p>
-        The central package abstraction is <code>P2PConnection</code>. A
-        conforming binding MUST provide the following members and operations in
-        host-language-appropriate form.
-      </p>
+      <h2>Connection Operations</h2>
       <table class="simple">
         <thead>
           <tr>
-            <th>Member or operation</th>
-            <th>Role</th>
-            <th>Abstract behavior</th>
+            <th>Operation</th>
+            <th>Purpose</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><code>makeOffer(additionalIceServers?)</code></td>
-            <td>Association setup</td>
-            <td>
-              Creates local offer state and returns an <code>Offer</code>.
-            </td>
+            <td>Create a new offer and reserve offeror-side state.</td>
           </tr>
           <tr>
             <td><code>acceptOffer(offer, additionalIceServers?)</code></td>
-            <td>Association setup</td>
-            <td>Accepts an offer and returns paired contract copies.</td>
+            <td>Accept an offer and derive the paired contract copies.</td>
           </tr>
           <tr>
             <td>Connection construction from <code>Contract</code></td>
-            <td>Construction</td>
-            <td>
-              Creates a live connection abstraction from one contract copy.
-            </td>
+            <td>Create a live connection from one contract copy.</td>
           </tr>
           <tr>
             <td><code>ready()</code></td>
-            <td>Readiness</td>
-            <td>Resolves when the connection's data channel becomes open.</td>
-          </tr>
-          <tr>
-            <td><code>shareMicrophone()</code></td>
-            <td>Media publishing</td>
-            <td>Publishes the shared local microphone track if available.</td>
-          </tr>
-          <tr>
-            <td><code>stopSharingMicrophone()</code></td>
-            <td>Media publishing</td>
-            <td>Stops publishing the current local microphone sender.</td>
-          </tr>
-          <tr>
-            <td><code>shareCamera()</code></td>
-            <td>Media publishing</td>
-            <td>Publishes the shared local camera track if available.</td>
-          </tr>
-          <tr>
-            <td><code>stopSharingCamera()</code></td>
-            <td>Media publishing</td>
-            <td>Stops publishing the current local camera sender.</td>
-          </tr>
-          <tr>
-            <td><code>shareScreen()</code></td>
-            <td>Media publishing</td>
-            <td>Publishes the shared local display stream if available.</td>
-          </tr>
-          <tr>
-            <td><code>stopSharingScreen()</code></td>
-            <td>Media publishing</td>
-            <td>Stops publishing current local display senders.</td>
+            <td>Wait until the data channel is open.</td>
           </tr>
           <tr>
             <td><code>sendMessage(message)</code></td>
-            <td>Application messaging</td>
-            <td>
-              Encodes and sends a structured application payload over the open
-              data channel.
-            </td>
+            <td>Send an application message over the data channel.</td>
           </tr>
           <tr>
             <td><code>closeConnection()</code></td>
-            <td>Shutdown</td>
-            <td>Closes the live channel and the underlying peer connection.</td>
+            <td>Close the channel and the underlying peer connection.</td>
           </tr>
           <tr>
-            <td>
-              Listener registration operations for package-defined event kinds
-            </td>
-            <td>Event observation</td>
-            <td>
-              Registers and removes observers for <code>message</code>,
-              <code>camera</code>, and <code>screen</code>.
-            </td>
+            <td><code>shareMicrophone()</code></td>
+            <td>Publish microphone media.</td>
           </tr>
           <tr>
-            <td>Shared and remote preview handles</td>
-            <td>Binding-specific media observation</td>
-            <td>
-              A DOM-oriented binding MAY expose local and remote preview handles
-              for camera and screen media.
-            </td>
+            <td><code>stopSharingMicrophone()</code></td>
+            <td>Stop publishing microphone media.</td>
+          </tr>
+          <tr>
+            <td><code>shareCamera()</code></td>
+            <td>Publish camera media.</td>
+          </tr>
+          <tr>
+            <td><code>stopSharingCamera()</code></td>
+            <td>Stop publishing camera media.</td>
+          </tr>
+          <tr>
+            <td><code>shareScreen()</code></td>
+            <td>Publish display media.</td>
+          </tr>
+          <tr>
+            <td><code>stopSharingScreen()</code></td>
+            <td>Stop publishing display media.</td>
           </tr>
         </tbody>
       </table>
-      <aside class="note">
-        <p>
-          The canonical JavaScript binding uses a constructor plus the method
-          names shown above. Other bindings may expose the same semantics in a
-          different syntactic form.
-        </p>
-      </aside>
       <section>
         <h3>Common ICE Configuration</h3>
         <p>
-          Both <code>makeOffer()</code> and <code>acceptOffer()</code> MUST
-          create a new peer-connection object whose <code>iceServers</code>
-          list begins with the following built-in STUN server record:
+          The operations <code>makeOffer()</code> and
+          <code>acceptOffer()</code> MUST create a peer connection whose
+          <code>iceServers</code> list begins with the following STUN server
+          record:
         </p>
         <pre class="js">
 {
@@ -509,42 +566,34 @@
         </pre>
         <p>
           If <code>additionalIceServers</code> is omitted, it MUST be treated as
-          an empty list. When provided, its members MUST be appended in the
-          order supplied by the caller. The created peer-connection object MUST
-          use <code>iceTransportPolicy: "all"</code>.
+          an empty list. If <code>additionalIceServers</code> is provided, its
+          members MUST be appended after the built-in STUN server record. The
+          peer connection MUST use <code>iceTransportPolicy</code> equal to
+          <code>"all"</code>.
         </p>
       </section>
       <section>
         <h3>makeOffer()</h3>
         <ol class="algorithm">
           <li>
-            Create a new peer-connection object using the common ICE
-            configuration.
+            Create a new peer connection using the common ICE configuration.
+          </li>
+          <li>Create a data channel named <code>"data"</code>.</li>
+          <li>Create a new offer identifier.</li>
+          <li>Create a local offer description.</li>
+          <li>Set that offer as the local description.</li>
+          <li>Wait until ICE gathering completes.</li>
+          <li>
+            If the local description is absent after ICE gathering completes,
+            throw <code>MISSING_LOCAL_DESCRIPTION</code>.
           </li>
           <li>
-            Create a data channel on that connection with the label
-            <code>"data"</code>.
-          </li>
-          <li>Generate an <code>offerId</code> using a host UUID facility.</li>
-          <li>
-            Create and set the local session description on the peer connection.
+            Store the peer connection and the data channel in the pending-offer
+            map under the offer identifier.
           </li>
           <li>
-            Wait until ICE gathering has completed, either because the host
-            peer-connection state becomes <code>"complete"</code> or because an
-            ICE-candidate indication reports a null candidate.
-          </li>
-          <li>
-            If the host peer connection does not expose a local description
-            after that wait, throw <code>MISSING_LOCAL_DESCRIPTION</code>.
-          </li>
-          <li>
-            Reserve the new peer connection and data channel in local pending
-            state keyed by <code>offerId</code>.
-          </li>
-          <li>
-            Return an <code>Offer</code> containing the <code>offerId</code>
-            and finalized local description.
+            Return an <code>Offer</code> record containing the offer identifier
+            and the local description.
           </li>
         </ol>
       </section>
@@ -552,105 +601,93 @@
         <h3>acceptOffer()</h3>
         <ol class="algorithm">
           <li>
-            Create a new peer-connection object using the common ICE
-            configuration.
+            Create a new peer connection using the common ICE configuration.
+          </li>
+          <li>Begin waiting for the next incoming data channel.</li>
+          <li>
+            Set the remote description from <code>offer.description</code>.
+          </li>
+          <li>Create a local answer description.</li>
+          <li>Set that answer as the local description.</li>
+          <li>Wait until ICE gathering completes.</li>
+          <li>
+            If the local description is absent after ICE gathering completes,
+            throw <code>MISSING_LOCAL_DESCRIPTION</code>.
           </li>
           <li>
-            Start waiting for the next incoming data-channel indication from
-            that peer connection.
-          </li>
-          <li>
-            Set the remote description from the supplied
-            <code>offer.description</code>.
-          </li>
-          <li>Create and set a local session-description answer.</li>
-          <li>
-            Wait for ICE gathering completion using the same completion
-            conditions defined for <code>makeOffer()</code>.
-          </li>
-          <li>
-            If the host peer connection does not expose a local description
-            after that wait, throw <code>MISSING_LOCAL_DESCRIPTION</code>.
-          </li>
-          <li>
-            Reserve the new peer connection and the pending incoming data
-            channel promise in local accepted-offer state keyed by
-            <code>offer.offerId</code>.
+            Store the peer connection and the pending incoming data channel in
+            the accepted-offer map under <code>offer.offerId</code>.
           </li>
           <li>
             Return a <code>ContractCopies</code> record whose
-            <code>offeror</code> member contains the answer and whose
-            <code>offeree</code> member identifies the offeree role.
+            <code>offeror</code> member is an offeror contract copy and whose
+            <code>offeree</code> member is an offeree contract copy.
           </li>
         </ol>
       </section>
       <section>
         <h3>Connection Construction</h3>
         <p>
-          The connection-construction operation consumes exactly one reserved
-          local state entry. A previously consumed contract MUST NOT be
-          reusable.
+          Constructing a connection consumes exactly one reserved state entry. A
+          contract copy MUST NOT be reusable after it has been consumed.
         </p>
         <ol class="algorithm">
           <li>
             If the contract role is <code>"offeror"</code>, look up the pending
-            local offer state by <code>contract.offerId</code>.
+            offer state using <code>contract.offerId</code>.
           </li>
           <li>
-            If no matching pending local offer exists, throw
+            If no such state exists, throw
             <code>UNKNOWN_PEER_CONTRACT</code>.
           </li>
           <li>
-            Use the reserved peer connection and data channel as the live
-            connection state, delete the pending reservation, and set the remote
-            description from <code>contract.answer</code>.
+            Use the reserved peer connection and data channel as the live state
+            of the connection.
+          </li>
+          <li>Delete the consumed pending-offer entry.</li>
+          <li>Set the remote description from <code>contract.answer</code>.</li>
+          <li>
+            If the contract role is <code>"offeree"</code>, look up the
+            accepted-offer state using <code>contract.offerId</code>.
           </li>
           <li>
-            If the contract role is <code>"offeree"</code>, look up the accepted
-            local offer state by <code>contract.offerId</code>.
-          </li>
-          <li>
-            If no matching accepted local offer exists, throw
+            If no such state exists, throw
             <code>UNKNOWN_PEER_CONTRACT</code>.
           </li>
           <li>
-            Use the reserved peer connection and waiting incoming-channel
-            promise as the live connection state, then delete the accepted-offer
-            reservation.
+            Use the reserved peer connection and the pending incoming data
+            channel as the live state of the connection.
+          </li>
+          <li>Delete the consumed accepted-offer entry.</li>
+          <li>
+            Assign the offeree role as polite and the offeror role as impolite.
           </li>
           <li>
-            Mark an offeree connection as the polite peer and an offeror
-            connection as the impolite peer for automatic renegotiation.
+            When the live data channel becomes available, install the message
+            processing and readiness observers defined by this specification.
           </li>
           <li>
-            When the live data channel becomes available, register a message
-            handler that decodes MessagePack payloads as defined by [[MSGPACK]],
-            consumes reserved internal signals, and dispatches all other
-            payloads as application-message events.
-          </li>
-          <li>
-            Register the automatic renegotiation and remote-track handlers
-            defined later in this specification.
+            Install the renegotiation-needed and incoming-track observers
+            defined by this specification.
           </li>
         </ol>
       </section>
       <section>
         <h3>ready()</h3>
         <p>
-          The <code>ready()</code> operation returns a promise-like readiness
-          result that resolves only after the connection's live data channel has
-          reached the <code>"open"</code> state.
+          The <code>ready()</code> operation returns a promise-like result that
+          resolves only after the live data channel reaches the
+          <code>"open"</code> state.
         </p>
         <p>
-          The readiness result MUST resolve immediately if the channel is
-          already open.
+          If the channel is already open, the result MUST resolve immediately.
         </p>
-        <p>The readiness result MUST reject with:</p>
+        <p>The result MUST reject with:</p>
         <ul>
           <li>
             <code>CHANNEL_NOT_AVAILABLE</code> if the peer connection reaches
-            <code>"failed"</code> or <code>"closed"</code> before the offeree
-            receives a data-channel indication;
+            <code>"failed"</code> or <code>"closed"</code> before an incoming
+            data channel is observed;
           </li>
           <li>
             <code>CHANNEL_CLOSED</code> if the channel closes before opening; or
@@ -664,94 +701,62 @@
       <section>
         <h3>sendMessage()</h3>
         <p>
-          The <code>sendMessage(message)</code> operation MUST check whether the
-          live data channel both exists and has <code>readyState</code> equal to
+          The <code>sendMessage(message)</code> operation MUST verify that a
+          live data channel exists and that its ready state is
           <code>"open"</code>.
         </p>
         <p>
-          If that condition is false, the operation MUST throw
-          <code>CONNECTION_NOT_READY</code>. If it is true, the operation MUST
-          MessagePack-encode the supplied value as defined by [[MSGPACK]] and
-          send the resulting bytes on the live data channel.
+          If either condition is false, the operation MUST throw
+          <code>CONNECTION_NOT_READY</code>.
         </p>
-        <aside class="note">
-          <p>
-            The type parameter <code>T</code> constrains author intent in the
-            canonical TypeScript binding, but the package does not perform
-            runtime schema validation of decoded application payloads beyond
-            internal-signal detection.
-          </p>
-        </aside>
+        <p>
+          Otherwise, the operation MUST encode <code>message</code> using
+          MessagePack as defined by [[MSGPACK]] and send the resulting bytes on
+          the live data channel.
+        </p>
       </section>
       <section>
-        <h3>Listener Registration</h3>
+        <h3>Observer Registration</h3>
         <p>
-          A conforming binding MUST provide a way to register and remove
-          listeners on the connection's own notification surface, not on the
-          underlying peer-connection or data-channel primitives. The canonical
-          JavaScript binding uses <code>addEventListener()</code> and
-          <code>removeEventListener()</code>.
+          A connection MUST provide operations for adding and removing observers
+          for the connection-scoped notification surface.
         </p>
       </section>
       <section>
         <h3>closeConnection()</h3>
         <p>
           The <code>closeConnection()</code> operation MUST close the live data
-          channel if one has been attached, and MUST then close the underlying
+          channel if one has been attached and MUST then close the underlying
           peer connection.
         </p>
       </section>
     </section>
     <section>
-      <h2>Media Sharing and Preview Behavior</h2>
-      <p>
-        The package maintains shared local media state associated with the
-        connection abstraction itself rather than with any single connection
-        instance. That shared state is reused across all connections created in
-        the same implementation context.
-      </p>
-      <table class="simple">
-        <thead>
-          <tr>
-            <th>Shared state</th>
-            <th>Meaning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>localCameraVideoElement</code></td>
-            <td>
-              Shared local camera preview handle in a DOM-oriented binding.
-            </td>
-          </tr>
-          <tr>
-            <td><code>localScreenVideoElement</code></td>
-            <td>
-              Shared local screen preview handle in a DOM-oriented binding.
-            </td>
-          </tr>
-          <tr>
-            <td>Cached user-media stream</td>
-            <td>
-              Shared stream reused by <code>shareMicrophone()</code> and
-              <code>shareCamera()</code>.
-            </td>
-          </tr>
-          <tr>
-            <td>Cached display-media stream</td>
-            <td>Shared stream reused by <code>shareScreen()</code>.</td>
-          </tr>
-        </tbody>
-      </table>
+      <h2>Application Message Processing</h2>
+      <ol class="algorithm">
+        <li>Receive a payload from the data channel.</li>
+        <li>Decode the payload using MessagePack.</li>
+        <li>
+          If the decoded value matches the reserved internal-signal shape,
+          process it using the internal renegotiation algorithm and stop.
+        </li>
+        <li>
+          Otherwise, emit a <code>message</code> notification whose payload is
+          the decoded value.
+        </li>
+      </ol>
+    </section>
+    <section>
+      <h2>Media Publication and Observation</h2>
       <section>
         <h3>shareMicrophone()</h3>
         <ol class="algorithm">
           <li>
-            If no cached user-media stream exists, request one with both audio
-            and video enabled and cache the resulting stream.
+            If no shared user-media source exists, request one with both audio
+            and video enabled and cache the result.
           </li>
-          <li>Read the first audio track from that cached stream.</li>
-          <li>If no audio track exists, return without throwing.</li>
+          <li>Read the first audio track from the shared user-media source.</li>
+          <li>If no audio track exists, return.</li>
           <li>
             Add that audio track to the peer connection and store the returned
             sender as the current user-audio sender.
@@ -759,153 +764,181 @@
         </ol>
       </section>
       <section>
+        <h3>stopSharingMicrophone()</h3>
+        <p>
+          If a current user-audio sender exists, remove it from the peer
+          connection and clear the stored sender. Otherwise, do nothing.
+        </p>
+      </section>
+      <section>
         <h3>shareCamera()</h3>
         <ol class="algorithm">
           <li>
-            If no cached user-media stream exists, request one with both audio
-            and video enabled and cache the resulting stream.
+            If no shared user-media source exists, request one with both audio
+            and video enabled and cache the result.
           </li>
-          <li>Read the first video track from that cached stream.</li>
-          <li>If no video track exists, return without throwing.</li>
+          <li>Read the first video track from the shared user-media source.</li>
+          <li>If no video track exists, return.</li>
           <li>
             Add that video track to the peer connection and store the returned
             sender as the current user-video sender.
           </li>
           <li>
-            If a DOM-oriented local camera preview handle does not exist, create
-            one whose autoplay, inline-playback, and muted semantics are
-            enabled.
+            If no shared local camera presentation exists, create one and mark
+            it for local camera presentation.
           </li>
           <li>
-            If the shared local camera preview handle has no source object,
-            assign it a new stream containing the selected video track and begin
-            playback.
+            If the shared local camera presentation does not already present
+            media, associate it with a stream containing the selected video
+            track and begin presentation.
           </li>
         </ol>
+      </section>
+      <section>
+        <h3>stopSharingCamera()</h3>
+        <p>
+          If a current user-video sender exists, remove it from the peer
+          connection and clear the stored sender. Otherwise, do nothing.
+        </p>
       </section>
       <section>
         <h3>shareScreen()</h3>
         <ol class="algorithm">
           <li>
-            If no cached display-media stream exists, request one with video and
-            audio enabled and cache the resulting stream.
+            If no shared display-media source exists, request one with video and
+            audio enabled and cache the result.
           </li>
           <li>
-            Read the first video track from that cached stream. If present, add
-            it to the peer connection and store the returned sender as the
-            current display-video sender.
+            Read the first video track from the shared display-media source. If
+            present, add it to the peer connection and store the returned sender
+            as the current display-video sender.
           </li>
           <li>
-            Read the first audio track from that cached stream. If present, add
-            it to the peer connection and store the returned sender as the
-            current display-audio sender.
+            Read the first audio track from the shared display-media source. If
+            present, add it to the peer connection and store the returned sender
+            as the current display-audio sender.
           </li>
           <li>
-            If a DOM-oriented local screen preview handle does not exist, create
-            one whose autoplay, inline-playback, and muted semantics are
-            enabled.
+            If no shared local screen presentation exists, create one and mark
+            it for local screen presentation.
           </li>
           <li>
-            If the shared local screen preview handle has no source object,
-            assign it a new stream containing the selected display video track
-            and begin playback.
+            If the shared local screen presentation does not already present
+            media, associate it with a stream containing the selected display
+            video track and begin presentation.
           </li>
         </ol>
       </section>
       <section>
-        <h3>Stopping Shared Media</h3>
+        <h3>stopSharingScreen()</h3>
         <p>
-          <code>stopSharingMicrophone()</code>,
-          <code>stopSharingCamera()</code>, and
-          <code>stopSharingScreen()</code> MUST remove the corresponding stored
-          sender or senders from the peer connection when present and MUST do
-          nothing when the corresponding sender is absent.
-        </p>
-        <p>
-          These operations do not stop the underlying cached media tracks, do
-          not clear the cached streams, and do not remove or reset any shared
-          preview handles.
+          If a current display-video sender exists, remove it from the peer
+          connection and clear the stored sender. If a current display-audio
+          sender exists, remove it from the peer connection and clear the stored
+          sender. If neither sender exists, do nothing.
         </p>
       </section>
       <section>
         <h3>Incoming Track Classification</h3>
-        <p>
-          When an incoming track indication is received, the package MUST use
-          the first associated remote stream when available. If no stream is
-          supplied, it MUST synthesize a new stream from the received track.
-        </p>
-        <p>
-          The first encountered remote stream identifier MUST be treated as the
-          remote user-media stream. Tracks associated with that identifier
-          update the remote camera preview handle and emit <code>camera</code>.
-        </p>
-        <p>
-          The next distinct remote stream identifier MUST be treated as the
-          remote display stream. Tracks associated with that identifier update
-          the remote screen preview handle and emit <code>screen</code>.
-        </p>
+        <ol class="algorithm">
+          <li>
+            When an incoming track indication is received, use the first
+            associated stream if one is present.
+          </li>
+          <li>
+            If no stream is present, synthesize a new stream containing only the
+            received track.
+          </li>
+          <li>
+            If no remote user-media stream identifier has yet been recorded, or
+            the stream identifier equals the recorded remote user-media stream
+            identifier, then: set or reuse the remote camera presentation,
+            associate it with the stream, begin presentation, emit
+            <code>camera</code>, and stop.
+          </li>
+          <li>
+            If no remote display stream identifier has yet been recorded, or the
+            stream identifier equals the recorded remote display stream
+            identifier, then: set or reuse the remote screen presentation,
+            associate it with the stream, begin presentation, and emit
+            <code>screen</code>.
+          </li>
+        </ol>
       </section>
     </section>
     <section>
       <h2>Automatic Renegotiation</h2>
       <p>
-        Track additions may cause the underlying peer connection to report that
-        renegotiation is needed. The package uses the established data channel
-        as an internal renegotiation transport.
+        The data channel is used as the transport for internal renegotiation.
       </p>
-      <ol class="algorithm">
-        <li>
-          If no live data channel has yet been attached to the connection, a
-          renegotiation-needed indication MUST be ignored.
-        </li>
-        <li>
-          Otherwise, the connection MUST create a fresh local offer, wait for
-          ICE gathering completion, and send the resulting description across
-          the data channel using the reserved internal-signal shape with
-          <code>__sovereignbase_peer2peer</code> equal to
-          <code>"renegotiate-offer"</code>.
-        </li>
-        <li>
-          When such an internal offer is received, the receiving connection MUST
-          determine whether there is an offer collision.
-        </li>
-        <li>
-          The offeror role acts as the impolite peer. The offeree role acts as
-          the polite peer.
-        </li>
-        <li>
-          If a colliding renegotiation offer is received by the impolite peer,
-          that offer MUST be ignored.
-        </li>
-        <li>
-          Otherwise, the receiving peer MUST apply the remote description. If
-          the internal signal is a renegotiation offer, it MUST then create a
-          fresh local answer, wait for ICE gathering completion, and send a
-          <code>"renegotiate-answer"</code> internal signal back across the data
-          channel.
-        </li>
-      </ol>
-      <p>
-        Reserved internal signals MUST NOT be forwarded to application-message
-        listeners.
-      </p>
+      <section>
+        <h3>On Renegotiation Needed</h3>
+        <ol class="algorithm">
+          <li>
+            If no live data channel has yet been attached to the connection,
+            return.
+          </li>
+          <li>Mark the connection as currently producing a local offer.</li>
+          <li>Create a fresh local offer description.</li>
+          <li>Wait until ICE gathering completes.</li>
+          <li>
+            Send a reserved internal signal whose discriminator is
+            <code>"renegotiate-offer"</code> and whose description is the new
+            local offer description.
+          </li>
+          <li>
+            Clear the marker that indicates that the connection is currently
+            producing a local offer.
+          </li>
+        </ol>
+      </section>
+      <section>
+        <h3>On Internal Signal Received</h3>
+        <ol class="algorithm">
+          <li>
+            Determine whether the connection is ready to accept a remote offer.
+          </li>
+          <li>
+            A renegotiation-offer signal collides if the connection is not ready
+            to accept a remote offer.
+          </li>
+          <li>
+            If the signal is a colliding renegotiation-offer and the connection
+            is impolite, ignore the signal and return.
+          </li>
+          <li>
+            If the signal discriminator is
+            <code>"renegotiate-answer"</code>, mark the connection as currently
+            applying a remote answer.
+          </li>
+          <li>Apply the remote description carried by the signal.</li>
+          <li>
+            Clear the marker that indicates that a remote answer is pending.
+          </li>
+          <li>
+            If the signal discriminator is
+            <code>"renegotiate-offer"</code>, then: create a fresh local answer
+            description, wait until ICE gathering completes, and send a reserved
+            internal signal whose discriminator is
+            <code>"renegotiate-answer"</code> and whose description is the new
+            local answer description.
+          </li>
+        </ol>
+      </section>
     </section>
     <section class="informative">
       <h2>Security and Privacy Considerations</h2>
       <p>
         Offer and answer values may contain ICE candidates and related network
-        metadata from the host WebRTC stack. Applications should therefore treat
-        their signaling transport as sensitive.
+        metadata. Signaling paths should therefore be treated as sensitive.
       </p>
       <p>
-        The package does not itself provide transport-layer confidentiality for
-        signaling messages. Confidentiality and integrity for the peer-to-peer
-        media and data path depend on the underlying WebRTC implementation.
+        Confidentiality and integrity for the peer-to-peer media and data path
+        depend on the underlying WebRTC stack.
       </p>
       <p>
-        Media capture operations rely on host permission prompts and permission
-        policy. The package does not override or virtualize those consent
-        requirements.
+        Media capture operations rely on ambient permission and policy controls
+        supplied by the environment.
       </p>
     </section>
     <section id="conformance">
