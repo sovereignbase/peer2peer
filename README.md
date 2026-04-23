@@ -60,7 +60,7 @@ type Message = {
  *
  * WebRTC is end-to-end encrypted by default.
  * As long as you stick to standard STUN or TURN servers and
- * do not use something like an SFU, all data is e2ee via DTLS
+ * do not use something like a SFU, all data is e2ee via DTLS
  */
 
 // Peer A
@@ -103,12 +103,12 @@ connection.addEventListener('screen', (event) => {
   document.body.append(event.detail) // HTMLVideoElement
 })
 
-// Stream data
+// Stream media
 await connection.shareMicrophone()
 await connection.shareCamera()
 await connection.shareScreen()
 
-// Stop streaming data
+// Stop streaming media
 connection.stopSharingMicrophone()
 connection.stopSharingCamera()
 connection.stopSharingScreen()
