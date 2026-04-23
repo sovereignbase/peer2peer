@@ -59,8 +59,8 @@ type Message = {
  * For example `https://developers.cloudflare.com/realtime/turn/`.
  *
  * WebRTC is end-to-end encrypted by default.
- * As long as you stick to standard STUN or TURN servers and not use
- * something  like an SFU, all data is e2ee via DTLS
+ * As long as you stick to standard STUN or TURN servers and
+ * do not use something like an SFU, all data is e2ee via DTLS
  */
 
 // Peer A

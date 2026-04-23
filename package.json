@@ -5,7 +5,14 @@
   "version": "0.0.0",
   "description": "Simple WebRTC wrapper for peer to peer connection setup in browsers.",
   "keywords": [
+    "peer-to-peer",
+    "p2p",
     "webrtc",
+    "rtcdatachannel",
+    "signaling",
+    "stun",
+    "turn",
+    "browser",
     "typescript",
     "sovereignbase"
   ],
