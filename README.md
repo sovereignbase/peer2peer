@@ -58,7 +58,15 @@ vlt install jsr:@sovereignbase/peer2peer
 ### Basic
 
 ```ts
+import { P2PConnection } from '@sovereignbase/peer2peer'
 
+const offer = P2PConnection.makeOffer()
+const { offeror, offeree } = P2PConnection.acceptOffer(offer)
+
+// The device that called `makeOffer`
+const deviceA = new PeerConnection(offeror)
+// The device that called `acceptOffer`
+const deviceB = new PeerConnection(offeree)
 ```
 
 7. Runtime behavior
