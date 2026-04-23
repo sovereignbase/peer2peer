@@ -59,7 +59,7 @@ jobs:
         uses: googleapis/release-please-action@v3
         with:
           release-type: node
-          package-name: '@sovereignbase/pkg'
+          package-name: '@sovereignbase/peer2peer'
 
   publish:
     if: needs.release-please.outputs.release_created == 'true'
