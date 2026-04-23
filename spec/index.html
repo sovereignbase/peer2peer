@@ -120,13 +120,8 @@
         </p>
       </aside>
     </section>
-    <section>
+    <section id="conformance">
       <h2>Conformance</h2>
-      <p>
-        The key words <em>MUST</em>, <em>MUST NOT</em>, <em>SHOULD</em>,
-        <em>SHOULD NOT</em>, and <em>MAY</em> in this document are to be
-        interpreted as described in RFC 2119.
-      </p>
       <p>
         A conforming implementation MUST exhibit the behavior defined in this
         document. Unless stated otherwise, structural terms such as list, map,
@@ -446,10 +441,10 @@
       </p>
     </section>
     <section>
-      <h2>Notification Model</h2>
+      <h2>Event Model</h2>
       <p>
-        Each connection exposes a connection-scoped notification surface with
-        the following event kinds:
+        Each connection exposes a connection-scoped event surface with the
+        following event kinds:
       </p>
       <table class="simple">
         <thead>
@@ -939,12 +934,6 @@
       <p>
         Media capture operations rely on ambient permission and policy controls
         supplied by the environment.
-      </p>
-    </section>
-    <section id="conformance">
-      <p>
-        The normative requirements of this specification are defined by all
-        sections except those explicitly marked informative.
       </p>
     </section>
   </body>
