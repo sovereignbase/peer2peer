@@ -137,3 +137,23 @@ test('unit: sendMessage rejects while the RTCDataChannel is not open', async (t)
     /RTCDataChannel is in the "connecting" state/
   )
 })
+
+test('unit: sendMessage rejects when no RTCDataChannel is attached yet', async (t) => {
+  setupRuntime(t)
+
+  FakeRTCPeerConnection.enqueueBehavior({ iceMode: 'complete' })
+  FakeRTCPeerConnection.enqueueBehavior({
+    iceMode: 'complete',
+    initialDataChannelMode: 'none',
+  })
+
+  const { P2PConnection } = await loadDist()
+  const offer = await P2PConnection.makeOffer([])
+  const copies = await P2PConnection.acceptOffer(offer, [])
+  const offeree = new P2PConnection(copies.offeree)
+
+  assert.throws(
+    () => offeree.sendMessage({ kind: 'test' }),
+    /RTCDataChannel is not available yet/
+  )
+})

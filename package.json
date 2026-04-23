@@ -3,8 +3,9 @@
   "license": "Apache-2.0",
   "name": "@sovereignbase/peer2peer",
   "version": "0.0.0",
-  "description": "",
+  "description": "Simple WebRTC wrapper for peer to peer connection setup in browsers.",
   "keywords": [
+    "webrtc",
     "typescript",
     "sovereignbase"
   ],
@@ -31,7 +32,7 @@
   "sideEffects": false,
   "scripts": {
     "format": "prettier . --write",
-    "build": "tsup && node in-browser-testing-build.js",
+    "build": "tsup && typedoc && node in-browser-testing-build.js",
     "test": "npm run build && node test/run-coverage.mjs && node test/e2e/run.mjs",
     "bench": "npm run build && node benchmark/bench.js",
     "prepare": "husky",
@@ -43,6 +44,7 @@
       "dist/**/*.js"
     ],
     "exclude": [
+      "dist/index.browser.js",
       "dist/**/*.d.ts",
       "test/**",
       "benchmark/**",

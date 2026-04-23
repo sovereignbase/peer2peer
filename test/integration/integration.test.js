@@ -167,6 +167,61 @@ test('integration: track events without streams fall back to a synthetic MediaSt
   )
 })
 
+test('integration: ready resolves when the data channel opens after listeners attach', async (t) => {
+  setupRuntime(t)
+  const { offeror } = await createConnectedPair({
+    offerorBehavior: {
+      iceMode: 'complete',
+      initialOpenMode: 'manual',
+    },
+    offereeBehavior: { iceMode: 'complete' },
+  })
+
+  const readyPromise = offeror.ready()
+  await flushAsyncWork()
+  offeror.channel.open()
+
+  await readyPromise
+})
+
+test('integration: shareCamera initializes user media when called first', async (t) => {
+  const runtime = setupRuntime(t)
+  const { P2PConnection, offeror, offeree } = await createConnectedPair()
+
+  await Promise.all([offeror.ready(), offeree.ready()])
+
+  runtime.queueUserMedia(
+    createMediaStream({ audio: 1, video: 1, id: 'camera-first' })
+  )
+
+  await offeror.shareCamera()
+  await flushAsyncWork()
+
+  assert.equal(P2PConnection.localCameraVideoElement?.playCount, 1)
+  assert.equal(offeror.peerConnection.addedTracks.length, 1)
+})
+
+test('integration: decoded null payloads are treated as application messages', async (t) => {
+  setupRuntime(t)
+  const { offeror, offeree } = await createConnectedPair()
+
+  await Promise.all([offeror.ready(), offeree.ready()])
+
+  const messages = []
+  offeror.addEventListener('message', (event) => {
+    messages.push(event.detail)
+  })
+
+  offeror.channel.dispatchEvent(
+    createEvent('message', {
+      data: encode(null),
+    })
+  )
+  await flushAsyncWork()
+
+  assert.deepEqual(messages, [null])
+})
+
 test('integration: share methods tolerate missing tracks and idle stop calls', async (t) => {
   const runtime = setupRuntime(t)
   const { P2PConnection, offeror, offeree } = await createConnectedPair()

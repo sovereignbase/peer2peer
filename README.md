@@ -120,6 +120,28 @@ Local preview elements are exposed as:
 - `P2PConnection.localCameraVideoElement`
 - `P2PConnection.localScreenVideoElement`
 
+## Runtime behaviour
+
+- Package does not provide signaling transport. You move `Offer` and `Contract`
+  objects through your own channel, for example WebSocket, HTTP, QR, copy-paste
+  or any other out-of-band transport.
+- `P2PConnection.makeOffer()` and `P2PConnection.acceptOffer()` always include 4
+  public Google STUN servers by default and append any additional ICE servers
+  you pass in.
+- `ready()` resolves only after the underlying `RTCDataChannel` reaches the
+  `"open"` state. If the peer connection fails, closes, or the channel errors
+  first, it rejects with a typed `P2PConnectionError`.
+- `sendMessage()` uses MessagePack encoding via `@msgpack/msgpack`. The
+  `"message"` event receives the decoded payload as `event.detail`.
+- Media sharing is lazy and shared. `shareMicrophone()` and `shareCamera()`
+  reuse one cached `getUserMedia()` stream, and `shareScreen()` reuses one
+  cached `getDisplayMedia()` stream.
+- Local preview elements are also shared through the static
+  `P2PConnection.localCameraVideoElement` and
+  `P2PConnection.localScreenVideoElement` properties.
+- Track additions trigger automatic in-band renegotiation over the existing data
+  channel. The offeree side behaves as the polite peer during glare handling.
+
 ### Errors
 
 Failures throw `P2PConnectionError`. The `code` is stable and the `message`
@@ -133,6 +155,36 @@ Supported error codes:
 - `CONNECTION_NOT_READY`
 - `UNKNOWN_PEER_CONTRACT`
 - `MISSING_LOCAL_DESCRIPTION`
+
+## Tests
+
+```sh
+npm test
+```
+
+- Unit tests cover typed errors, contract validation, ICE setup, local
+  description failures and readiness guards.
+- Integration tests cover connection setup, message exchange, renegotiation,
+  media sharing, fallback media behavior and failure paths.
+- Browser E2E tests use Playwright with separate browser contexts and a
+  WebSocket signaling server to verify real WebRTC connection establishment and
+  isolated simultaneous peer pairs.
+- Current automated coverage is `100%` for statements, branches, functions and
+  lines on the published runtime bundle.
+
+## Benchmarks
+
+```sh
+npm run bench
+```
+
+Last measured on Node `v22.14.0` (`win32 x64`):
+
+| Benchmark                        |      Average |       Min |       Max |
+| -------------------------------- | -----------: | --------: | --------: |
+| websocket-signaled `ready()`     |    242.39 ms | 229.80 ms | 284.30 ms |
+| one-way `sendMessage()` delivery |      5.36 ms |   3.21 ms |   8.50 ms |
+| message throughput               | 186.72 msg/s |         - |         - |
 
 ## License
 

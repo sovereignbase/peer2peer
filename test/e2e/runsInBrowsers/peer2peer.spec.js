@@ -27,10 +27,12 @@ async function waitForMessages(page, sessionId, count) {
 }
 
 async function closePeer(page, sessionId) {
-  await page.evaluate(
-    (id) => window.__peer2peerTestKit.closeSession(id),
-    sessionId
-  )
+  try {
+    await page.evaluate(
+      (id) => window.__peer2peerTestKit.closeSession(id),
+      sessionId
+    )
+  } catch {}
 }
 
 test('connects two pages through websocket signaling and exchanges messages', async ({

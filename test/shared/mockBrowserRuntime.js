@@ -230,17 +230,17 @@ export class FakeRTCPeerConnection extends EventTarget {
       this.behavior.localDescriptionMode === 'null' ? null : normalized
 
     if (this.behavior.iceMode === 'state') {
-      queueMicrotask(() => {
+      setTimeout(() => {
         this.iceGatheringState = 'complete'
         this.dispatchEvent(new Event('icegatheringstatechange'))
-      })
+      }, 0)
     }
 
     if (this.behavior.iceMode === 'candidate') {
-      queueMicrotask(() => {
+      setTimeout(() => {
         this.iceGatheringState = 'complete'
         this.dispatchEvent(createEvent('icecandidate', { candidate: null }))
-      })
+      }, 0)
     }
   }
 

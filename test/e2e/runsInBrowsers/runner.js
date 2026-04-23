@@ -1,4 +1,17 @@
-import { P2PConnection } from '/dist/index.js'
+import { P2PConnection } from '/dist/index.browser.js'
+
+const NativeRTCPeerConnection = window.RTCPeerConnection
+
+window.RTCPeerConnection = class RTCPeerConnectionWithoutExternalIce extends (
+  NativeRTCPeerConnection
+) {
+  constructor(configuration = {}) {
+    super({
+      ...configuration,
+      iceServers: [],
+    })
+  }
+}
 
 const sessions = new Map()
 
@@ -89,10 +102,12 @@ async function handleSignal(session, payload) {
 
 window.__peer2peerTestKit = {
   async createSession({ sessionId, roomId, peerId, remotePeerId, initiator }) {
+    const joined = createDeferred()
     const ready = createDeferred()
     const session = {
       createdAt: performance.now(),
       initiator,
+      joined,
       messageWaiters: new Set(),
       messages: [],
       peer: undefined,
@@ -120,6 +135,8 @@ window.__peer2peerTestKit = {
       const message = JSON.parse(String(data))
 
       if (message.type === 'joined') {
+        joined.resolve()
+
         if (!initiator) return
 
         const offer = await P2PConnection.makeOffer([])
@@ -142,6 +159,8 @@ window.__peer2peerTestKit = {
     })
 
     sessions.set(sessionId, session)
+
+    return createTimeout(joined.promise, 5000, `join for session ${sessionId}`)
   },
 
   async waitForReady(sessionId, timeoutMs = 5000) {

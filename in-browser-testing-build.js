@@ -9,4 +9,12 @@ await Promise.all([
     platform: 'browser',
     format: 'esm',
   }),
+  build({
+    entryPoints: ['./dist/index.js'],
+    outfile: './dist/index.browser.js',
+    bundle: true,
+    external: [],
+    platform: 'browser',
+    format: 'esm',
+  }),
 ])
